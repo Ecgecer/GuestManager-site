@@ -74,9 +74,9 @@ async function whatsappWebhook(req, res) {
  * POST — Twilio incoming SMS
  */
 async function smsWebhook(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const business = getBusiness(req);
-  return sms.handleWebhook(req, res, { business, sendEscalationAlert });
+  if (path === '/api/webhook/sms') {
+    console.log('SMS body:', JSON.stringify(req.body));
+    return smsWebhook(req, res);
 }
 
 /**
