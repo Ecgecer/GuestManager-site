@@ -43,8 +43,9 @@ async function sendSMS(to, text, business) {
   const authToken  = process.env.TWILIO_AUTH_TOKEN;
   const fromNumber = process.env.TWILIO_PHONE_NUMBER;
 
-  const credentials = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+  console.log('Sending SMS:', { to, from: fromNumber, accountSid: accountSid?.slice(0,10) });
 
+  const credentials = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
   const body = new URLSearchParams({ From: fromNumber, To: to, Body: text });
 
   const res = await fetch(
@@ -57,6 +58,18 @@ async function sendSMS(to, text, business) {
       },
       body: body.toString(),
     }
+  );
+
+  if (!res.ok) {
+    const err = await res.json();
+    console.error('[SMS] Send failed:', JSON.stringify(err));
+    throw new Error(`Twilio error: ${err.message}`);
+  }
+
+  const result = await res.json();
+  console.log('[SMS] Sent successfully:', result.sid);
+  return result;
+}
   );
 
   if (!res.ok) {
