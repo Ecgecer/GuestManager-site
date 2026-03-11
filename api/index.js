@@ -4,12 +4,12 @@
  * Deploy as Vercel serverless functions
  */
 
-const whatsapp  = require('../lib/whatsapp');
-const sms       = require('../lib/sms');
-const instagram = require('../lib/instagram');
-const facebook  = require('../lib/facebook');
-const { scrapeBusinessFromUrl, validateBusinessData } = require('../lib/scraper');
-const { getBusinessStats } = require('../lib/conversation-store');
+const whatsapp  = require('./lib/whatsapp');
+const sms       = require('./lib/sms');
+const instagram = require('./lib/instagram');
+const facebook  = require('./lib/facebook');
+const { scrapeBusinessFromUrl, validateBusinessData } = require('./lib/scraper');
+const { getBusinessStats } = require('./lib/conversation-store');
 
 // ─── MOCK BUSINESS STORE ───────────────────────────────────────────
 // In production: replace with your database (Supabase, PlanetScale, etc.)
