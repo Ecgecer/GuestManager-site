@@ -165,15 +165,15 @@ async function health(req, res) {
 }
 
 module.exports = async function handler(req, res) {
-  const path = req.url.split('?')[0];
+  const path = req.url.split('?')[0].replace(/\/$/, '');
   
-  if (path === '/api/health')                  return health(req, res);
-  if (path === '/api/stats')                   return stats(req, res);
-  if (path === '/api/onboard')                 return onboard(req, res);
-  if (path === '/api/webhook/whatsapp')        return whatsappWebhook(req, res);
-  if (path === '/api/webhook/sms')             return smsWebhook(req, res);
-  if (path === '/api/webhook/instagram')       return instagramWebhook(req, res);
-  if (path === '/api/webhook/facebook')        return facebookWebhook(req, res);
+  if (path === '/api/health')             return health(req, res);
+  if (path === '/api/stats')              return stats(req, res);
+  if (path === '/api/onboard')            return onboard(req, res);
+  if (path === '/api/webhook/whatsapp')   return whatsappWebhook(req, res);
+  if (path === '/api/webhook/sms')        return smsWebhook(req, res);
+  if (path === '/api/webhook/instagram')  return instagramWebhook(req, res);
+  if (path === '/api/webhook/facebook')   return facebookWebhook(req, res);
   
   return res.status(404).json({ error: 'Not found' });
 };
