@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    { "source": "/api/webhook/whatsapp", "destination": "/api/webhook/whatsapp" },
+    { "source": "/api/webhook/sms",       "destination": "/api/webhook/sms" },
+    { "source": "/api/webhook/instagram", "destination": "/api/webhook/instagram" },
+    { "source": "/api/webhook/facebook",  "destination": "/api/webhook/facebook" },
+    { "source": "/api/onboard",           "destination": "/api/onboard" },
+    { "source": "/api/stats",             "destination": "/api/stats" },
+    { "source": "/api/health",            "destination": "/api/health" }
+  ]
+}
