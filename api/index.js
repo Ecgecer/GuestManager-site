@@ -11,8 +11,6 @@ const facebook  = require('./lib/facebook');
 const { scrapeBusinessFromUrl, validateBusinessData } = require('./lib/scraper');
 const { getBusinessStats } = require('./lib/conversation-store');
 
-// ─── MOCK BUSINESS STORE ───────────────────────────────────────────
-// In production: replace with your database (Supabase, PlanetScale, etc.)
 const BUSINESSES = {
   'demo': {
     id: 'demo',
@@ -36,14 +34,10 @@ const BUSINESSES = {
 };
 
 function getBusiness(req) {
-  // In production: look up by subdomain, API key, or phone number
   const businessId = req.headers['x-business-id'] || req.query.businessId || 'demo';
   return BUSINESSES[businessId] || BUSINESSES['demo'];
 }
 
-/**
- * Escalation alert — notifies business owner via WhatsApp
- */
 async function sendEscalationAlert(business, alertText) {
   if (!business.ownerWhatsApp) return;
   try {
@@ -53,13 +47,6 @@ async function sendEscalationAlert(business, alertText) {
   }
 }
 
-// ─── WEBHOOK HANDLERS ──────────────────────────────────────────────
-
-/**
- * /api/webhook/whatsapp
- * GET  — Meta verification challenge
- * POST — Incoming messages
- */
 async function whatsappWebhook(req, res) {
   if (req.method === 'GET')  return whatsapp.verifyWebhook(req, res);
   if (req.method === 'POST') {
@@ -69,26 +56,15 @@ async function whatsappWebhook(req, res) {
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
-/**
- * /api/webhook/sms
- * POST — Twilio incoming SMS
- */
 async function smsWebhook(req, res) {
-  if (path === '/api/webhook/sms') {
-    console.log('SMS body:', JSON.stringify(req.body));
-    return smsWebhook(req, res);
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  console.log('SMS body:', JSON.stringify(req.body));
+  const business = getBusiness(req);
+  return sms.handleWebhook(req, res, { business, sendEscalationAlert });
 }
 
-/**
- * /api/webhook/instagram
- * GET  — Meta verification
- * POST — Incoming DMs
- */
 async function instagramWebhook(req, res) {
-  if (req.method === 'GET') {
-    // Instagram uses same verify flow as WhatsApp
-    return whatsapp.verifyWebhook(req, res);
-  }
+  if (req.method === 'GET')  return whatsapp.verifyWebhook(req, res);
   if (req.method === 'POST') {
     const business = getBusiness(req);
     return instagram.handleWebhook(req, res, { business, sendEscalationAlert });
@@ -96,11 +72,6 @@ async function instagramWebhook(req, res) {
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
-/**
- * /api/webhook/facebook
- * GET  — Meta verification
- * POST — Incoming messages
- */
 async function facebookWebhook(req, res) {
   if (req.method === 'GET')  return whatsapp.verifyWebhook(req, res);
   if (req.method === 'POST') {
@@ -110,34 +81,19 @@ async function facebookWebhook(req, res) {
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
-/**
- * /api/onboard
- * POST — 60-second onboarding: scrape URL and return business profile
- */
 async function onboard(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: 'URL required' });
-
   try {
     const businessData = await scrapeBusinessFromUrl(url);
     const validation   = validateBusinessData(businessData);
-
-    return res.status(200).json({
-      success: true,
-      business: businessData,
-      validation,
-    });
+    return res.status(200).json({ success: true, business: businessData, validation });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 }
 
-/**
- * /api/stats
- * GET — Business stats for dashboard
- */
 async function stats(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
   const business = getBusiness(req);
@@ -145,10 +101,6 @@ async function stats(req, res) {
   return res.status(200).json(data);
 }
 
-/**
- * /api/health
- * GET — Health check
- */
 async function health(req, res) {
   return res.status(200).json({
     status: 'ok',
@@ -156,10 +108,10 @@ async function health(req, res) {
     product: 'Guest.Manager',
     timestamp: new Date().toISOString(),
     env: {
-      anthropic:  !!process.env.ANTHROPIC_API_KEY,
-      twilio:     !!process.env.TWILIO_ACCOUNT_SID,
-      meta:       !!process.env.META_ACCESS_TOKEN,
-      whatsapp:   !!process.env.WHATSAPP_PHONE_NUMBER_ID,
+      anthropic: !!process.env.ANTHROPIC_API_KEY,
+      twilio:    !!process.env.TWILIO_ACCOUNT_SID,
+      meta:      !!process.env.META_ACCESS_TOKEN,
+      whatsapp:  !!process.env.WHATSAPP_PHONE_NUMBER_ID,
     },
   });
 }
