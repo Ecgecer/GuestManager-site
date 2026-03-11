@@ -4,6 +4,7 @@
  * Deploy as Vercel serverless functions
  */
 
+const qs = require('querystring');
 const whatsapp  = require('./lib/whatsapp');
 const sms       = require('./lib/sms');
 const instagram = require('./lib/instagram');
