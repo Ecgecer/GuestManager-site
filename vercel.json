@@ -1,10 +1,4 @@
-{
-  "version": 2,
-  "functions": {
-    "api/**/*.js": {
-      "maxDuration": 30
-    }
-  },
+
   "rewrites": [
     { "source": "/api/webhook/whatsapp", "destination": "/api/webhook/whatsapp" },
     { "source": "/api/webhook/sms",       "destination": "/api/webhook/sms" },
@@ -14,4 +8,3 @@
     { "source": "/api/stats",             "destination": "/api/stats" },
     { "source": "/api/health",            "destination": "/api/health" }
   ]
-}
