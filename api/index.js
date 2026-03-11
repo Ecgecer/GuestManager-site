@@ -4,7 +4,6 @@
  * Deploy as Vercel serverless functions
  */
 
-const qs = require('querystring');
 const whatsapp  = require('./lib/whatsapp');
 const sms       = require('./lib/sms');
 const instagram = require('./lib/instagram');
@@ -166,11 +165,16 @@ async function health(req, res) {
 }
 
 module.exports = async function handler(req, res) {
-  // Parse form-encoded body (Twilio sends this format)
-  if (req.headers['content-type']?.includes('application/x-www-form-urlencoded')) {
+  // Parse body
+  if (!req.body) {
     const buffers = [];
     for await (const chunk of req) buffers.push(chunk);
-    req.body = qs.parse(Buffer.concat(buffers).toString());
+    const raw = Buffer.concat(buffers).toString();
+    try {
+      req.body = JSON.parse(raw);
+    } catch {
+      req.body = Object.fromEntries(new URLSearchParams(raw));
+    }
   }
 
   const path = req.url.split('?')[0].replace(/\/$/, '');
