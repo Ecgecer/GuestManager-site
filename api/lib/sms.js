@@ -58,7 +58,6 @@ async function sendSMS(to, text, business) {
       },
       body: body.toString(),
     }
-  );
 
   if (!res.ok) {
     const err = await res.json();
