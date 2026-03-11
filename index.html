@@ -899,15 +899,50 @@ footer {
 </div>
 
 <script>
-  // waitlist form
-  function handleWaitlist(e, inputId = 'heroEmail', successId = 'heroSuccess') {
+  // waitlist form — calls /api/subscribe serverless function
+  async function handleWaitlist(e, inputId = 'heroEmail', successId = 'heroSuccess') {
     e.preventDefault();
-    const input = document.getElementById(inputId);
+    const input   = document.getElementById(inputId);
     const success = document.getElementById(successId);
-    if (!input.value) return;
-    input.value = '';
-    success.classList.add('show');
-    setTimeout(() => success.classList.remove('show'), 5000);
+    const btn     = e.target.querySelector('button[type="submit"], button:last-child');
+    const email   = input.value.trim();
+    if (!email) return;
+
+    // loading state
+    const originalText = btn.textContent;
+    btn.textContent = 'Joining…';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        input.value = '';
+        success.textContent = '✓ You\'re on the list! Check your inbox for a confirmation.';
+        success.style.color = 'var(--terra)';
+        success.classList.add('show');
+        setTimeout(() => success.classList.remove('show'), 7000);
+      } else {
+        success.textContent = data.error || 'Something went wrong. Please try again.';
+        success.style.color = '#c0392b';
+        success.classList.add('show');
+        setTimeout(() => success.classList.remove('show'), 5000);
+      }
+    } catch (err) {
+      success.textContent = 'Network error. Please try again.';
+      success.style.color = '#c0392b';
+      success.classList.add('show');
+      setTimeout(() => success.classList.remove('show'), 5000);
+    } finally {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
   }
 
   // intersection observer for fade-up
