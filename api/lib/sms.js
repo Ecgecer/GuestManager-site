@@ -1,57 +1,64 @@
-const { getAIResponse, buildEscalationAlert } = require('./ai-brain');
+const { getAIResponse } = require('./ai-brain');
 const { getSession, addToHistory, markEscalated } = require('./conversation-store');
 
 async function handleWebhook(req, res, { business, sendEscalationAlert }) {
   res.setHeader('Content-Type', 'text/xml');
   res.status(200).send('<Response></Response>');
 
+  const { From: contactId, Body: text, ProfileName: guestName } = req.body;
+
+  if (!contactId || !text) {
+    console.log('[SMS] Missing contactId or text');
+    return;
+  }
+
+  console.log('[SMS] Incoming from:', contactId, 'text:', text);
+
+  const session = getSession(business.id, 'sms', contactId, guestName || null);
+  if (session.escalated) {
+    console.log('[SMS] Session escalated, skipping AI');
+    return;
+  }
+
+  addToHistory(session, 'user', text);
+
+  console.log('[SMS] Calling AI...');
+
+  let aiResult;
   try {
-    const { From: contactId, Body: text, ProfileName: guestName } = req.body;
-    if (!contactId || !text) {
-      console.log('[SMS] Missing contactId or text');
-      return;
-    }
-
-    console.log('[SMS] Incoming from:', contactId, 'text:', text);
-
-    const session = getSession(business.id, 'sms', contactId, guestName || null);
-    if (session.escalated) {
-      console.log('[SMS] Session escalated, skipping AI');
-      return;
-    }
-
-    addToHistory(session, 'user', text);
-
-    let aiResult;
-try {
-  aiResult = await getAIResponse({
-    message: text,
-    business,
-    conversationHistory: session.history.slice(0, -1),
-    guestName: guestName || null,
-  });
-  console.log('[SMS] AI result:', JSON.stringify(aiResult));
-} catch (aiErr) {
-  console.error('[SMS] AI call failed:', aiErr.message, aiErr.stack);
-  return;
-}
-
+    aiResult = await getAIResponse({
+      message: text,
+      business,
+      conversationHistory: session.history.slice(0, -1),
+      guestName: guestName || null,
+    });
     console.log('[SMS] AI result:', JSON.stringify(aiResult));
+  } catch (aiErr) {
+    console.error('[SMS] AI call failed:', aiErr.message);
+    console.error('[SMS] AI call stack:', aiErr.stack);
+    return;
+  }
 
-    if (aiResult.escalate) {
-      markEscalated(session, aiResult.escalateReason);
-      const holdingMsg = 'Thank you for your message. Our team will be in touch shortly.';
+  if (aiResult.escalate) {
+    markEscalated(session, aiResult.escalateReason);
+    const holdingMsg = 'Thank you for your message. Our team will be in touch shortly.';
+    try {
       await sendSMS(contactId, holdingMsg, business);
       addToHistory(session, 'assistant', holdingMsg);
-      return;
+    } catch (sendErr) {
+      console.error('[SMS] Failed to send holding message:', sendErr.message);
     }
+    return;
+  }
 
-    if (aiResult.reply) {
+  if (aiResult.reply) {
+    try {
       await sendSMS(contactId, aiResult.reply, business);
       addToHistory(session, 'assistant', aiResult.reply);
+      console.log('[SMS] Reply sent successfully');
+    } catch (sendErr) {
+      console.error('[SMS] Failed to send reply:', sendErr.message);
     }
-  } catch (err) {
-    console.error('[SMS] Handler error FULL:', JSON.stringify(err), err.message, err.stack);
   }
 }
 
