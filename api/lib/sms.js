@@ -44,7 +44,7 @@ async function handleWebhook(req, res, { business, sendEscalationAlert }) {
       addToHistory(session, 'assistant', aiResult.reply);
     }
   } catch (err) {
-    console.error('[SMS] Handler error:', err.message, err.stack);
+    console.error('[SMS] Handler error FULL:', JSON.stringify(err), err.message, err.stack);
   }
 }
 
