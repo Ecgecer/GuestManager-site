@@ -22,12 +22,19 @@ async function handleWebhook(req, res, { business, sendEscalationAlert }) {
 
     addToHistory(session, 'user', text);
 
-    const aiResult = await getAIResponse({
-      message: text,
-      business,
-      conversationHistory: session.history.slice(0, -1),
-      guestName: guestName || null,
-    });
+    let aiResult;
+try {
+  aiResult = await getAIResponse({
+    message: text,
+    business,
+    conversationHistory: session.history.slice(0, -1),
+    guestName: guestName || null,
+  });
+  console.log('[SMS] AI result:', JSON.stringify(aiResult));
+} catch (aiErr) {
+  console.error('[SMS] AI call failed:', aiErr.message, aiErr.stack);
+  return;
+}
 
     console.log('[SMS] AI result:', JSON.stringify(aiResult));
 
