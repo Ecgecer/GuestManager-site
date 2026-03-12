@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Set Up Your Bot — Guest.Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Source+Sans+3:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #F5F2EE;
+  --surface: #FFFFFF;
+  --surface2: #FAF8F5;
+  --border: #E2DBD2;
+  --terra: #C4613A;
+  --terra-soft: #F5DDD2;
+  --terra-dim: rgba(196,97,58,.1);
+  --charcoal: #2E2C29;
+  --mid: #5A5650;
+  --muted: #9A948C;
+  --sub: #6E6860;
+  --green: #2A9D5C;
+  --green-soft: rgba(42,157,92,.1);
+  --green-border: rgba(42,157,92,.25);
+  --shadow: 0 2px 16px rgba(46,44,41,.08);
+  --shadow-lg: 0 8px 40px rgba(46,44,41,.12);
+}
+
+body {
+  font-family: 'Source Sans 3', sans-serif;
+  background: var(--bg);
+  color: var(--charcoal);
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* NAV */
+nav {
+  position: relative;
+  z-index: 10;
+  padding: 20px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: rgba(245,242,238,.9);
+  backdrop-filter: blur(8px);
+}
+
+.logo {
+  font-family: 'Lora', serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--charcoal);
+  text-decoration: none;
+}
+.logo span { color: var(--terra); }
+
+.nav-back {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color .2s;
+}
+.nav-back:hover { color: var(--terra); }
+
+/* PROGRESS */
+.progress-bar {
+  position: relative;
+  z-index: 1;
+  max-width: 600px;
+  margin: 40px auto 0;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.prog-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  position: relative;
+}
+
+.prog-step::after {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--border);
+  z-index: -1;
+}
+.prog-step:last-child::after { display: none; }
+.prog-step.done::after { background: var(--terra); }
+
+.prog-dot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  transition: all .3s;
+  position: relative;
+  z-index: 1;
+}
+
+.prog-step.active .prog-dot {
+  border-color: var(--terra);
+  background: var(--terra);
+  color: #fff;
+}
+
+.prog-step.done .prog-dot {
+  border-color: var(--terra);
+  background: var(--terra);
+  color: #fff;
+}
+
+.prog-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  white-space: nowrap;
+}
+
+.prog-step.active .prog-label { color: var(--terra); }
+.prog-step.done .prog-label { color: var(--terra); }
+
+/* MAIN */
+.main {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+}
+
+/* STEP PANELS */
+.step-panel { display: none; animation: fadeUp .4s ease both; }
+.step-panel.active { display: block; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.step-heading {
+  margin-bottom: 32px;
+}
+
+.step-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--terra);
+  margin-bottom: 10px;
+}
+
+.step-title {
+  font-family: 'Lora', serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--charcoal);
+  line-height: 1.2;
+  margin-bottom: 10px;
+}
+
+.step-title em {
+  font-style: italic;
+  color: var(--terra);
+}
+
+.step-sub {
+  font-size: 15px;
+  color: var(--sub);
+  line-height: 1.6;
+}
+
+/* URL INPUT */
+.url-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: var(--shadow);
+}
+
+.input-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.url-input {
+  flex: 1;
+  padding: 13px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: 'Source Sans 3', sans-serif;
+  color: var(--charcoal);
+  background: var(--surface2);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.url-input:focus {
+  border-color: var(--terra);
+  box-shadow: 0 0 0 3px var(--terra-dim);
+  background: var(--surface);
+}
+
+.url-input::placeholder { color: var(--muted); }
+
+.btn-primary {
+  padding: 13px 22px;
+  background: var(--terra);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Source Sans 3', sans-serif;
+  cursor: pointer;
+  transition: background .2s, transform .1s;
+  white-space: nowrap;
+}
+
+.btn-primary:hover { background: #B05530; }
+.btn-primary:active { transform: scale(.98); }
+.btn-primary:disabled { background: var(--muted); cursor: not-allowed; }
+
+.url-examples {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.url-ex {
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all .2s;
+  font-family: 'DM Mono', monospace;
+}
+
+.url-ex:hover {
+  border-color: var(--terra);
+  color: var(--terra);
+  background: var(--terra-soft);
+}
+
+/* LOADING STATE */
+.loading-state {
+  display: none;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.loading-state.active { display: block; }
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--terra);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-steps {
+  list-style: none;
+  text-align: left;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.loading-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--muted);
+  transition: color .3s;
+}
+
+.loading-step.active { color: var(--charcoal); font-weight: 600; }
+.loading-step.done { color: var(--green); }
+
+.ls-icon { font-size: 14px; width: 18px; text-align: center; }
+
+/* REVIEW STEP */
+.review-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+
+.review-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface2);
+}
+
+.review-header h3 {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--mid);
+}
+
+.confidence-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.confidence-high { background: var(--green-soft); color: var(--green); border: 1px solid var(--green-border); }
+.confidence-med { background: #FFF8E6; color: #B07D00; border: 1px solid rgba(176,125,0,.2); }
+.confidence-low { background: var(--terra-soft); color: var(--terra); border: 1px solid rgba(196,97,58,.2); }
+
+.review-body { padding: 20px 24px; }
+
+.field-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 8px 16px;
+  align-items: start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.field-row:last-child { border-bottom: none; }
+
+.field-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--muted);
+  padding-top: 8px;
+}
+
+.field-input {
+  width: 100%;
+  padding: 7px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: 'Source Sans 3', sans-serif;
+  color: var(--charcoal);
+  background: var(--surface);
+  outline: none;
+  resize: vertical;
+  min-height: 36px;
+  transition: border-color .2s;
+}
+
+.field-input:focus {
+  border-color: var(--terra);
+  box-shadow: 0 0 0 2px var(--terra-dim);
+}
+
+.field-null { font-size: 13px; color: var(--muted); padding-top: 8px; font-style: italic; }
+
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.tag {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--mid);
+}
+
+.warning-box {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #FFF8E6;
+  border: 1px solid rgba(176,125,0,.2);
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.warning-icon { font-size: 15px; flex-shrink: 0; }
+.warning-text { font-size: 13px; color: #7A5500; line-height: 1.55; }
+
+/* CHANNELS CARD */
+.channels-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  margin-bottom: 24px;
+}
+
+.channels-card .review-header { background: var(--charcoal); }
+.channels-card .review-header h3 { color: rgba(255,255,255,.7); }
+
+.channel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.channel-row:last-child { border-bottom: none; }
+
+.channel-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.channel-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.ch-wa { background: rgba(37,211,102,.12); }
+.ch-sms { background: var(--terra-dim); }
+.ch-ig { background: rgba(131,58,180,.1); }
+.ch-fb { background: rgba(24,119,242,.1); }
+
+.channel-name { font-size: 14px; font-weight: 600; color: var(--charcoal); }
+.channel-detail { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+.ch-status {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
+
+.ch-live { background: var(--green-soft); color: var(--green); border: 1px solid var(--green-border); }
+.ch-soon { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+
+/* ACTION BUTTONS */
+.action-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.btn-secondary {
+  padding: 13px 20px;
+  background: transparent;
+  color: var(--mid);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Source Sans 3', sans-serif;
+  cursor: pointer;
+  transition: all .2s;
+}
+
+.btn-secondary:hover { border-color: var(--charcoal); color: var(--charcoal); }
+
+/* SUCCESS STEP */
+.success-hero {
+  text-align: center;
+  padding: 20px 0 40px;
+}
+
+.success-mark {
+  width: 72px;
+  height: 72px;
+  background: var(--green-soft);
+  border: 2px solid var(--green-border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  margin: 0 auto 24px;
+  animation: popIn .4s cubic-bezier(.175,.885,.32,1.275) both;
+}
+
+@keyframes popIn {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.test-card {
+  background: var(--charcoal);
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin-bottom: 16px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+.test-card::after {
+  content: '';
+  position: absolute;
+  right: -20px;
+  top: -20px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(196,97,58,.1);
+}
+
+.test-card h3 {
+  font-family: 'Lora', serif;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.test-number {
+  font-family: 'DM Mono', monospace;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--terra);
+  margin: 12px 0;
+  letter-spacing: 1px;
+  position: relative;
+  z-index: 1;
+}
+
+.test-card p {
+  font-size: 13px;
+  color: rgba(255,255,255,.6);
+  line-height: 1.6;
+  position: relative;
+  z-index: 1;
+}
+
+.next-steps {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.next-step-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  color: var(--charcoal);
+  transition: background .2s;
+}
+
+.next-step-row:last-child { border-bottom: none; }
+.next-step-row:hover { background: var(--surface2); }
+
+.ns-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--terra-soft);
+  color: var(--terra);
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ns-text { flex: 1; }
+.ns-title { font-size: 14px; font-weight: 600; }
+.ns-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.ns-arrow { color: var(--muted); font-size: 16px; }
+
+/* ERROR */
+.error-box {
+  display: none;
+  padding: 14px 16px;
+  background: #FFF0EE;
+  border: 1px solid rgba(196,97,58,.3);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--terra);
+  margin-top: 12px;
+}
+.error-box.show { display: block; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">Guest<span>.</span>Manager</a>
+  <a href="/" class="nav-back">← Back to home</a>
+</nav>
+
+<!-- PROGRESS -->
+<div class="progress-bar">
+  <div class="prog-step active" id="ps1">
+    <div class="prog-dot">1</div>
+    <div class="prog-label">Your URL</div>
+  </div>
+  <div class="prog-step" id="ps2">
+    <div class="prog-dot">2</div>
+    <div class="prog-label">Review</div>
+  </div>
+  <div class="prog-step" id="ps3">
+    <div class="prog-dot">3</div>
+    <div class="prog-label">Go Live</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- STEP 1: URL INPUT -->
+  <div class="step-panel active" id="step1">
+    <div class="step-heading">
+      <div class="step-eyebrow">Step 1 of 3</div>
+      <h1 class="step-title">Your bot, ready in <em>60 seconds.</em></h1>
+      <p class="step-sub">Paste your business website URL. We'll read it and build your AI assistant automatically — no manual setup needed.</p>
+    </div>
+
+    <div class="url-card">
+      <div class="input-group">
+        <input type="url" class="url-input" id="urlInput" placeholder="https://yourbusiness.com" autocomplete="off"/>
+        <button class="btn-primary" id="scrapeBtn" onclick="startScrape()">Analyse →</button>
+      </div>
+      <div class="url-examples">
+        <span style="font-size:12px;color:var(--muted);margin-right:4px;">Try:</span>
+        <span class="url-ex" onclick="setUrl('https://studiobloom.com')">studiobloom.com</span>
+        <span class="url-ex" onclick="setUrl('https://example-salon.com')">example-salon.com</span>
+        <span class="url-ex" onclick="setUrl('https://myrestaurant.com')">myrestaurant.com</span>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-state" id="loadingState">
+      <div class="spinner"></div>
+      <ul class="loading-steps">
+        <li class="loading-step active" id="ls1"><span class="ls-icon">🔍</span> Reading your website</li>
+        <li class="loading-step" id="ls2"><span class="ls-icon">🧠</span> Extracting business info</li>
+        <li class="loading-step" id="ls3"><span class="ls-icon">⚙️</span> Building your AI profile</li>
+        <li class="loading-step" id="ls4"><span class="ls-icon">✨</span> Almost ready...</li>
+      </ul>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+  <!-- STEP 2: REVIEW -->
+  <div class="step-panel" id="step2">
+    <div class="step-heading">
+      <div class="step-eyebrow">Step 2 of 3</div>
+      <h1 class="step-title">Does this look <em>right?</em></h1>
+      <p class="step-sub">We've extracted your business info. Review and edit anything before your bot goes live.</p>
+    </div>
+
+    <div id="warningBox" class="warning-box" style="display:none">
+      <span class="warning-icon">⚠️</span>
+      <span class="warning-text"><strong>Low confidence extract.</strong> Some information may be incomplete. Please review carefully and fill in any missing fields.</span>
+    </div>
+
+    <div class="review-card">
+      <div class="review-header">
+        <h3>Business Profile</h3>
+        <span class="confidence-badge" id="confBadge">High confidence</span>
+      </div>
+      <div class="review-body">
+        <div class="field-row">
+          <div class="field-label">Business Name</div>
+          <input class="field-input" id="f_name" placeholder="e.g. Studio Bloom"/>
+        </div>
+        <div class="field-row">
+          <div class="field-label">Type</div>
+          <input class="field-input" id="f_type" placeholder="e.g. Hair salon, Restaurant..."/>
+        </div>
+        <div class="field-row">
+          <div class="field-label">Opening Hours</div>
+          <input class="field-input" id="f_hours" placeholder="e.g. Mon–Sat 9am–7pm"/>
+        </div>
+        <div class="field-row">
+          <div class="field-label">Location</div>
+          <input class="field-input" id="f_location" placeholder="e.g. Berlin Mitte"/>
+        </div>
+        <div class="field-row">
+          <div class="field-label">Phone</div>
+          <input class="field-input" id="f_phone" placeholder="e.g. +49 30 12345678"/>
+        </div>
+        <div class="field-row">
+          <div class="field-label">Booking URL</div>
+          <input class="field-input" id="f_bookingUrl" placeholder="e.g. https://..."/>
+        </div>
+        <div class="field-row">
+          <div class="field-label">Services</div>
+          <div>
+            <div class="tags-list" id="f_services_tags"></div>
+            <input class="field-input" id="f_services" placeholder="Comma separated: Facial, Massage, Manicure" style="margin-top:8px"/>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-label">Extra Notes</div>
+          <textarea class="field-input" id="f_notes" rows="2" placeholder="Anything else your bot should know..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="channels-card">
+      <div class="review-header">
+        <h3>Active Channels</h3>
+      </div>
+      <div class="channel-row">
+        <div class="channel-info">
+          <div class="channel-icon ch-sms">💬</div>
+          <div>
+            <div class="channel-name">SMS</div>
+            <div class="channel-detail">+1 316 999 8747</div>
+          </div>
+        </div>
+        <span class="ch-status ch-live">Live</span>
+      </div>
+      <div class="channel-row">
+        <div class="channel-info">
+          <div class="channel-icon ch-wa">📱</div>
+          <div>
+            <div class="channel-name">WhatsApp</div>
+            <div class="channel-detail">Test number active</div>
+          </div>
+        </div>
+        <span class="ch-status ch-live">Live</span>
+      </div>
+      <div class="channel-row">
+        <div class="channel-info">
+          <div class="channel-icon ch-ig">📸</div>
+          <div>
+            <div class="channel-name">Instagram DMs</div>
+            <div class="channel-detail">Pending Meta approval</div>
+          </div>
+        </div>
+        <span class="ch-status ch-soon">Coming Soon</span>
+      </div>
+      <div class="channel-row">
+        <div class="channel-info">
+          <div class="channel-icon ch-fb">👤</div>
+          <div>
+            <div class="channel-name">Facebook Messenger</div>
+            <div class="channel-detail">Pending Meta approval</div>
+          </div>
+        </div>
+        <span class="ch-status ch-soon">Coming Soon</span>
+      </div>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-secondary" onclick="goToStep(1)">← Start over</button>
+      <button class="btn-primary" onclick="activateBot()" style="flex:1">Activate my bot →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: SUCCESS -->
+  <div class="step-panel" id="step3">
+    <div class="success-hero">
+      <div class="success-mark">✓</div>
+      <div class="step-eyebrow">You're live!</div>
+      <h1 class="step-title" style="margin-bottom:10px">Your bot is <em>ready.</em></h1>
+      <p class="step-sub" id="successBusinessName">Your AI assistant is now handling messages automatically.</p>
+    </div>
+
+    <div class="test-card">
+      <h3>Test it right now</h3>
+      <div class="test-number">+1 316 999 8747</div>
+      <p>Send any SMS to this number and your bot will reply as <span id="testBizName">your business</span>. Try asking about opening hours, services, or prices.</p>
+    </div>
+
+    <div class="next-steps">
+      <a href="/dashboard.html" class="next-step-row">
+        <div class="ns-num">1</div>
+        <div class="ns-text">
+          <div class="ns-title">Open your dashboard</div>
+          <div class="ns-sub">Watch conversations in real time</div>
+        </div>
+        <span class="ns-arrow">→</span>
+      </a>
+      <a href="https://business.facebook.com" target="_blank" class="next-step-row">
+        <div class="ns-num">2</div>
+        <div class="ns-text">
+          <div class="ns-title">Approve WhatsApp production number</div>
+          <div class="ns-sub">Get a real business number (2–4 weeks)</div>
+        </div>
+        <span class="ns-arrow">→</span>
+      </a>
+      <a href="mailto:support@guestmanager.co" class="next-step-row">
+        <div class="ns-num">3</div>
+        <div class="ns-text">
+          <div class="ns-title">Need help? Contact us</div>
+          <div class="ns-sub">support@guestmanager.co</div>
+        </div>
+        <span class="ns-arrow">→</span>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let extractedData = null;
+
+function setUrl(url) {
+  document.getElementById('urlInput').value = url;
+  document.getElementById('urlInput').focus();
+}
+
+function goToStep(n) {
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('step' + n).classList.add('active');
+
+  document.querySelectorAll('.prog-step').forEach((s, i) => {
+    s.classList.remove('active', 'done');
+    if (i + 1 < n) s.classList.add('done');
+    if (i + 1 === n) s.classList.add('active');
+  });
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showError(msg) {
+  const box = document.getElementById('errorBox');
+  box.textContent = '⚠️ ' + msg;
+  box.classList.add('show');
+}
+
+function hideError() {
+  document.getElementById('errorBox').classList.remove('show');
+}
+
+async function startScrape() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) return showError('Please enter your website URL.');
+  if (!url.startsWith('http')) return showError('Please include https:// in your URL.');
+
+  hideError();
+
+  const btn = document.getElementById('scrapeBtn');
+  const card = document.querySelector('.url-card');
+  const loading = document.getElementById('loadingState');
+
+  btn.disabled = true;
+  btn.textContent = 'Analysing...';
+  card.style.display = 'none';
+  loading.classList.add('active');
+
+  // Animate loading steps
+  const steps = ['ls1', 'ls2', 'ls3', 'ls4'];
+  let si = 0;
+  const stepInterval = setInterval(() => {
+    if (si > 0) {
+      document.getElementById(steps[si - 1]).classList.remove('active');
+      document.getElementById(steps[si - 1]).classList.add('done');
+    }
+    if (si < steps.length) {
+      document.getElementById(steps[si]).classList.add('active');
+      si++;
+    } else {
+      clearInterval(stepInterval);
+    }
+  }, 800);
+
+  try {
+    const res = await fetch('/api/onboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+
+    clearInterval(stepInterval);
+
+    if (!res.ok) throw new Error('Server error — please try again.');
+    const data = await res.json();
+
+    if (!data.success) throw new Error(data.error || 'Could not read your website.');
+
+    extractedData = data.business;
+    populateReview(data.business, data.validation);
+    goToStep(2);
+
+  } catch (err) {
+    clearInterval(stepInterval);
+    loading.classList.remove('active');
+    card.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Analyse →';
+    showError(err.message);
+  }
+}
+
+function populateReview(biz, validation) {
+  document.getElementById('f_name').value        = biz.name || '';
+  document.getElementById('f_type').value        = biz.type || '';
+  document.getElementById('f_hours').value       = biz.hours || '';
+  document.getElementById('f_location').value    = biz.location || '';
+  document.getElementById('f_phone').value       = biz.phone || '';
+  document.getElementById('f_bookingUrl').value  = biz.bookingUrl || '';
+  document.getElementById('f_notes').value       = biz.notes || '';
+
+  // Services tags
+  const tags = document.getElementById('f_services_tags');
+  const services = biz.services || [];
+  tags.innerHTML = services.map(s => `<span class="tag">${s}</span>`).join('');
+  document.getElementById('f_services').value = services.join(', ');
+
+  // Confidence badge
+  const conf = biz.confidence || 0;
+  const badge = document.getElementById('confBadge');
+  if (conf >= 0.8) {
+    badge.textContent = 'High confidence';
+    badge.className = 'confidence-badge confidence-high';
+  } else if (conf >= 0.6) {
+    badge.textContent = 'Medium confidence';
+    badge.className = 'confidence-badge confidence-med';
+    document.getElementById('warningBox').style.display = 'flex';
+  } else {
+    badge.textContent = 'Low confidence — please review';
+    badge.className = 'confidence-badge confidence-low';
+    document.getElementById('warningBox').style.display = 'flex';
+  }
+}
+
+function activateBot() {
+  // Collect edited values
+  const business = {
+    ...extractedData,
+    name:       document.getElementById('f_name').value,
+    type:       document.getElementById('f_type').value,
+    hours:      document.getElementById('f_hours').value,
+    location:   document.getElementById('f_location').value,
+    phone:      document.getElementById('f_phone').value,
+    bookingUrl: document.getElementById('f_bookingUrl').value,
+    notes:      document.getElementById('f_notes').value,
+    services:   document.getElementById('f_services').value.split(',').map(s => s.trim()).filter(Boolean),
+  };
+
+  // Save to localStorage for now (will be database in production)
+  localStorage.setItem('gm_business', JSON.stringify(business));
+
+  const name = business.name || 'Your business';
+  document.getElementById('successBusinessName').textContent =
+    name + ' is now live. Your AI assistant is handling messages automatically.';
+  document.getElementById('testBizName').textContent = name;
+
+  goToStep(3);
+}
+
+// Allow Enter key on URL input
+document.getElementById('urlInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startScrape();
+});
+</script>
+</body>
+</html>
