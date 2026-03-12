@@ -2,22 +2,22 @@ const { getAIResponse } = require('./ai-brain');
 const { getSession, addToHistory, markEscalated } = require('./conversation-store');
 
 async function handleWebhook(req, res, { business, sendEscalationAlert }) {
-  res.setHeader('Content-Type', 'text/xml');
-  res.status(200).send('<Response></Response>');
-
   const { From: contactId, Body: text, ProfileName: guestName } = req.body;
 
   if (!contactId || !text) {
     console.log('[SMS] Missing contactId or text');
-    return;
+    res.setHeader('Content-Type', 'text/xml');
+    return res.status(200).send('<Response></Response>');
   }
 
   console.log('[SMS] Incoming from:', contactId, 'text:', text);
 
   const session = getSession(business.id, 'sms', contactId, guestName || null);
+
   if (session.escalated) {
     console.log('[SMS] Session escalated, skipping AI');
-    return;
+    res.setHeader('Content-Type', 'text/xml');
+    return res.status(200).send('<Response></Response>');
   }
 
   addToHistory(session, 'user', text);
@@ -35,8 +35,9 @@ async function handleWebhook(req, res, { business, sendEscalationAlert }) {
     console.log('[SMS] AI result:', JSON.stringify(aiResult));
   } catch (aiErr) {
     console.error('[SMS] AI call failed:', aiErr.message);
-    console.error('[SMS] AI call stack:', aiErr.stack);
-    return;
+    console.error('[SMS] AI stack:', aiErr.stack);
+    res.setHeader('Content-Type', 'text/xml');
+    return res.status(200).send('<Response></Response>');
   }
 
   if (aiResult.escalate) {
@@ -48,7 +49,8 @@ async function handleWebhook(req, res, { business, sendEscalationAlert }) {
     } catch (sendErr) {
       console.error('[SMS] Failed to send holding message:', sendErr.message);
     }
-    return;
+    res.setHeader('Content-Type', 'text/xml');
+    return res.status(200).send('<Response></Response>');
   }
 
   if (aiResult.reply) {
@@ -60,6 +62,9 @@ async function handleWebhook(req, res, { business, sendEscalationAlert }) {
       console.error('[SMS] Failed to send reply:', sendErr.message);
     }
   }
+
+  res.setHeader('Content-Type', 'text/xml');
+  return res.status(200).send('<Response></Response>');
 }
 
 async function sendSMS(to, text, business) {
@@ -67,7 +72,7 @@ async function sendSMS(to, text, business) {
   const authToken  = process.env.TWILIO_AUTH_TOKEN;
   const fromNumber = process.env.TWILIO_PHONE_NUMBER;
 
-  console.log('[SMS] Sending to:', to, 'from:', fromNumber, 'account:', accountSid ? accountSid.slice(0, 10) : 'MISSING');
+  console.log('[SMS] Sending to:', to, 'from:', fromNumber);
 
   const credentials = Buffer.from(accountSid + ':' + authToken).toString('base64');
   const body = new URLSearchParams({ From: fromNumber, To: to, Body: text });
