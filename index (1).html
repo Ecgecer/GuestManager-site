@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Guest.Manager — Every guest, always taken care of</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #F5F2EE;
+  --surface:    #FFFFFF;
+  --border:     #E0D9D1;
+  --terra:      #C4613A;
+  --terra-soft: #F5DDD2;
+  --terra-dim:  rgba(196,97,58,.10);
+  --charcoal:   #2E2C29;
+  --mid:        #5A5650;
+  --muted:      #9A948C;
+  --sub:        #6E6860;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Source Sans 3', sans-serif;
+  background: var(--bg);
+  color: var(--charcoal);
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.022'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0;
+}
+
+/* ── NAV ── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(245,242,238,.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 40px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 60px;
+}
+.nav-logo {
+  font-family: 'Lora', serif;
+  font-size: 18px; font-weight: 600;
+  color: var(--charcoal); text-decoration: none;
+  letter-spacing: -.3px;
+}
+.nav-logo span { color: var(--terra); }
+.nav-links { display: flex; align-items: center; gap: 28px; }
+.nav-links a {
+  font-size: 14px; font-weight: 500; color: var(--mid);
+  text-decoration: none; transition: color .15s;
+}
+.nav-links a:hover { color: var(--terra); }
+.nav-cta {
+  background: var(--terra); color: #fff;
+  font-size: 13px; font-weight: 700;
+  padding: 8px 20px; border-radius: 8px;
+  text-decoration: none; transition: background .15s;
+  font-family: 'Source Sans 3', sans-serif;
+}
+.nav-cta:hover { background: #B5522D; }
+
+/* ── SHELL ── */
+.shell { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 32px; }
+
+/* ── HERO ── */
+.hero {
+  padding: 88px 0 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+  min-height: 88vh;
+}
+
+.hero-left { padding-bottom: 80px; }
+
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--terra-soft);
+  border: 1px solid rgba(196,97,58,.2);
+  border-radius: 20px; padding: 5px 14px;
+  font-size: 12px; font-weight: 600; color: var(--terra);
+  text-transform: uppercase; letter-spacing: .5px;
+  margin-bottom: 28px;
+}
+.eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--terra); animation: blink 2s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.hero h1 {
+  font-family: 'Lora', serif;
+  font-size: clamp(38px, 4.5vw, 58px);
+  font-weight: 700; line-height: 1.1;
+  letter-spacing: -.5px;
+  color: var(--charcoal);
+  margin-bottom: 22px;
+}
+.hero h1 em { color: var(--terra); font-style: italic; }
+
+.hero-sub {
+  font-size: 17px; line-height: 1.7;
+  color: var(--sub); max-width: 440px;
+  margin-bottom: 36px; font-weight: 400;
+}
+
+/* hero CTA */
+.hero-cta-btn {
+  display: inline-block;
+  background: var(--terra); color: #fff;
+  border: none; border-radius: 10px;
+  padding: 14px 28px; font-size: 15px; font-weight: 700;
+  cursor: pointer; text-decoration: none;
+  font-family: 'Source Sans 3', sans-serif;
+  transition: background .15s, transform .1s;
+  margin-bottom: 14px;
+}
+.hero-cta-btn:hover { background: #B5522D; transform: translateY(-1px); }
+.hero-cta-btn:active { transform: translateY(0); }
+
+.hero-cta-sub {
+  font-size: 13px; color: var(--muted); margin-bottom: 20px;
+}
+.hero-cta-sub a { color: var(--terra); font-weight: 600; text-decoration: none; }
+.hero-cta-sub a:hover { text-decoration: underline; }
+
+/* waitlist form (kept for CTA section) */
+.waitlist-form {
+  display: flex; gap: 8px; max-width: 420px;
+  margin-bottom: 20px;
+}
+.waitlist-form input {
+  flex: 1; padding: 12px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 9px; font-size: 14px;
+  font-family: 'Source Sans 3', sans-serif;
+  color: var(--charcoal); background: var(--surface);
+  outline: none; transition: border-color .15s;
+}
+.waitlist-form input:focus { border-color: var(--terra); }
+.waitlist-form input::placeholder { color: var(--muted); }
+.waitlist-form button {
+  background: var(--terra); color: #fff;
+  border: none; border-radius: 9px;
+  padding: 12px 22px; font-size: 14px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+  font-family: 'Source Sans 3', sans-serif;
+  transition: background .15s, transform .1s;
+}
+.waitlist-form button:hover { background: #B5522D; transform: translateY(-1px); }
+.waitlist-form button:active { transform: translateY(0); }
+
+.hero-social-proof {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--muted);
+}
+.proof-avatars { display: flex; }
+.proof-avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: #fff;
+  margin-right: -7px;
+}
+
+/* hero right — dashboard mockup */
+.hero-right { position: relative; }
+.dashboard-mockup {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(46,44,41,.13), 0 4px 16px rgba(46,44,41,.06);
+  transform: perspective(1000px) rotateY(-4deg) rotateX(2deg);
+  transition: transform .4s ease;
+}
+.dashboard-mockup:hover { transform: perspective(1000px) rotateY(-1deg) rotateX(1deg); }
+
+.mock-header {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;
+}
+.mock-logo { font-family: 'Lora', serif; font-size: 13px; font-weight: 600; color: var(--charcoal); }
+.mock-logo span { color: var(--terra); }
+.mock-badge { font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--terra); color: var(--terra); }
+
+.mock-body { display: grid; grid-template-columns: 140px 1fr; height: 320px; }
+.mock-inbox { border-right: 1px solid var(--border); padding: 8px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+.mock-thread {
+  padding: 7px 8px; border-radius: 7px; cursor: default;
+  border: 1px solid transparent;
+}
+.mock-thread.active { background: var(--terra-soft); border-color: rgba(196,97,58,.2); }
+.mock-thread-name { font-size: 10px; font-weight: 700; color: var(--charcoal); margin-bottom: 2px; }
+.mock-thread-preview { font-size: 9px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+.mock-tags { display: flex; gap: 3px; }
+.mock-tag { font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
+.mt-wait { background: var(--terra-dim); color: var(--terra); border: 1px solid rgba(196,97,58,.2); }
+.mt-wa   { background: rgba(37,211,102,.1); color: #1a9a44; border: 1px solid rgba(37,211,102,.25); }
+.mt-ai   { background: rgba(90,86,80,.07); color: var(--mid); border: 1px solid var(--border); }
+.mt-sms  { background: rgba(90,86,80,.07); color: var(--mid); border: 1px solid var(--border); }
+.mt-done { color: var(--muted); border: 1px solid var(--border); }
+
+.mock-conv { display: flex; flex-direction: column; }
+.mock-conv-head {
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 7px;
+}
+.mock-avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--terra); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; flex-shrink: 0; }
+.mock-conv-name { font-size: 11px; font-weight: 700; color: var(--charcoal); }
+.mock-conv-meta { font-size: 9px; color: var(--muted); }
+.mock-resolve { margin-left: auto; background: var(--terra); color: #fff; border: none; border-radius: 4px; padding: 3px 8px; font-size: 9px; font-weight: 700; cursor: default; }
+
+.mock-messages { flex: 1; padding: 10px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.mock-msg { display: flex; gap: 5px; align-items: flex-end; }
+.mock-msg.out { flex-direction: row-reverse; }
+.mock-bub-avatar { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 700; flex-shrink: 0; }
+.mock-bub-avatar.g { background: var(--border); color: var(--mid); }
+.mock-bub-avatar.a { background: var(--terra-soft); color: var(--terra); }
+.mock-bub-avatar.o { background: var(--charcoal); color: var(--bg); }
+.mock-bubble { font-size: 9px; line-height: 1.5; padding: 5px 8px; max-width: 75%; }
+.mock-bubble.g { background: var(--bg); border: 1px solid var(--border); border-radius: 2px 8px 8px 8px; color: var(--charcoal); }
+.mock-bubble.a { background: var(--terra-soft); border: 1px solid rgba(196,97,58,.2); border-radius: 2px 8px 8px 8px; color: var(--charcoal); }
+.mock-bubble.o { background: var(--charcoal); border-radius: 8px 2px 8px 8px; color: var(--bg); }
+.mock-ai-label { font-size: 7px; color: var(--terra); font-weight: 700; margin-bottom: 2px; }
+
+.mock-reply {
+  margin: 8px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.mock-reply-text { font-size: 9px; color: var(--muted); }
+.mock-send { background: var(--terra); color: #fff; border: none; border-radius: 4px; padding: 3px 8px; font-size: 9px; font-weight: 700; cursor: default; }
+
+.mock-stats { border-top: 1px solid var(--border); padding: 8px 12px; display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; background: var(--surface); }
+.mock-stat-val { font-family: 'Lora', serif; font-size: 13px; font-weight: 700; color: var(--terra); }
+.mock-stat-label { font-size: 7px; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; font-weight: 600; }
+
+.float-badge {
+  position: absolute; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 8px 12px; box-shadow: 0 4px 20px rgba(46,44,41,.12);
+  animation: float 3s ease-in-out infinite;
+}
+.float-badge.b1 { bottom: -16px; left: -24px; animation-delay: 0s; }
+.float-badge.b2 { top: 40px; right: -28px; animation-delay: 1.2s; }
+.float-icon { font-size: 16px; margin-bottom: 3px; }
+.float-text { font-size: 11px; font-weight: 700; color: var(--charcoal); }
+.float-sub  { font-size: 10px; color: var(--muted); }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+
+/* ── SECTION COMMONS ── */
+section { padding: 96px 0; }
+.section-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--terra);
+  margin-bottom: 14px;
+}
+.section-title {
+  font-family: 'Lora', serif;
+  font-size: clamp(28px, 3.5vw, 42px);
+  font-weight: 700; line-height: 1.15;
+  letter-spacing: -.3px; color: var(--charcoal);
+  margin-bottom: 16px;
+}
+.section-title em { color: var(--terra); font-style: italic; }
+.section-sub {
+  font-size: 16px; color: var(--sub); line-height: 1.7;
+  max-width: 520px; margin-bottom: 56px;
+}
+
+.divider { height: 1px; background: var(--border); max-width: 1100px; margin: 0 auto; }
+
+/* ── LOGOS BAR ── */
+.logos-bar {
+  background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  padding: 22px 40px;
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  flex-wrap: wrap;
+}
+.logos-label { font-size: 12px; color: var(--muted); font-weight: 600; margin-right: 8px; white-space: nowrap; }
+.channel-pill {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 20px; padding: 6px 14px;
+  font-size: 13px; font-weight: 600; color: var(--mid);
+}
+
+/* ── HOW IT WORKS ── */
+.steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 32px; }
+.step { position: relative; }
+.step-num { font-family: 'Lora', serif; font-size: 48px; font-weight: 700; color: var(--terra-soft); line-height: 1; margin-bottom: 12px; letter-spacing: -2px; }
+.step-title { font-size: 17px; font-weight: 700; color: var(--charcoal); margin-bottom: 8px; }
+.step-desc { font-size: 14px; color: var(--sub); line-height: 1.7; }
+.step-connector { position: absolute; top: 28px; right: -16px; font-size: 18px; color: var(--border); }
+
+/* ── FEATURES ── */
+.features-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+.feature-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 24px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.feature-card:hover { border-color: var(--terra); box-shadow: 0 4px 24px rgba(196,97,58,.07); }
+.feature-icon { font-size: 24px; margin-bottom: 14px; }
+.feature-title { font-size: 15px; font-weight: 700; color: var(--charcoal); margin-bottom: 8px; }
+.feature-desc { font-size: 13px; color: var(--sub); line-height: 1.65; }
+.feature-tag { display: inline-block; margin-top: 12px; font-size: 10px; font-weight: 700; padding: 2px 9px; border-radius: 4px; background: var(--terra-dim); color: var(--terra); border: 1px solid rgba(196,97,58,.2); text-transform: uppercase; letter-spacing: .3px; }
+
+/* ── WHO IS IT FOR ── */
+.who-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+.who-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 18px; text-align: center; transition: border-color .2s; }
+.who-card:hover { border-color: var(--terra); }
+.who-icon { font-size: 28px; margin-bottom: 10px; }
+.who-title { font-size: 14px; font-weight: 700; color: var(--charcoal); margin-bottom: 5px; }
+.who-desc { font-size: 12px; color: var(--sub); line-height: 1.6; }
+
+/* ── PRICING ── */
+.pricing-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; align-items: start; }
+.price-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; transition: border-color .2s, box-shadow .2s; }
+.price-card:hover { border-color: var(--terra); }
+.price-card.featured { background: var(--charcoal); border-color: var(--charcoal); box-shadow: 0 8px 40px rgba(46,44,41,.2); }
+.price-tier { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.price-card.featured .price-tier { color: var(--terra); }
+.price-val { font-family: 'Lora', serif; font-size: 36px; font-weight: 700; color: var(--charcoal); letter-spacing: -1px; margin-bottom: 4px; }
+.price-card.featured .price-val { color: #fff; }
+.price-per { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+.price-card.featured .price-per { color: rgba(255,255,255,.5); }
+.price-features { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 22px; }
+.price-features li { font-size: 13px; color: var(--mid); display: flex; gap: 8px; align-items: flex-start; line-height: 1.4; }
+.price-card.featured .price-features li { color: rgba(255,255,255,.75); }
+.price-features li::before { content: '✓'; color: var(--terra); font-weight: 800; flex-shrink: 0; margin-top: 1px; }
+.price-btn { display: block; text-align: center; padding: 11px; border-radius: 8px; font-size: 13px; font-weight: 700; text-decoration: none; transition: all .15s; font-family: 'Source Sans 3', sans-serif; cursor: pointer; border: none; width: 100%; }
+.price-btn.outline { background: transparent; border: 1.5px solid var(--border); color: var(--mid); }
+.price-btn.outline:hover { border-color: var(--terra); color: var(--terra); }
+.price-btn.solid { background: var(--terra); color: #fff; }
+.price-btn.solid:hover { background: #B5522D; }
+.price-btn.inv { background: #fff; color: var(--charcoal); }
+.price-btn.inv:hover { background: var(--terra-soft); }
+.price-popular { font-size: 10px; font-weight: 700; padding: 2px 9px; border-radius: 10px; background: var(--terra); color: #fff; margin-left: 8px; vertical-align: middle; text-transform: uppercase; letter-spacing: .3px; }
+
+/* ── TESTIMONIALS ── */
+.testimonials { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+.testimonial { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+.test-text { font-family: 'Lora', serif; font-size: 15px; line-height: 1.65; color: var(--charcoal); margin-bottom: 18px; font-style: italic; }
+.test-author { display: flex; align-items: center; gap: 10px; }
+.test-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.test-name { font-size: 13px; font-weight: 700; color: var(--charcoal); }
+.test-role { font-size: 12px; color: var(--muted); }
+.stars { color: var(--terra); font-size: 12px; margin-bottom: 12px; }
+
+/* ── CTA SECTION ── */
+.cta-section {
+  background: var(--charcoal); border-radius: 20px;
+  padding: 64px 56px; text-align: center;
+  margin: 0 0 80px;
+  position: relative; overflow: hidden;
+}
+.cta-section::before { content: ''; position: absolute; top: -40px; right: -40px; width: 300px; height: 300px; border-radius: 50%; background: rgba(196,97,58,.08); }
+.cta-section::after { content: ''; position: absolute; bottom: -60px; left: -20px; width: 200px; height: 200px; border-radius: 50%; background: rgba(196,97,58,.06); }
+.cta-section h2 { font-family: 'Lora', serif; font-size: clamp(28px,3.5vw,42px); font-weight: 700; color: #fff; margin-bottom: 16px; line-height: 1.15; position: relative; z-index: 1; }
+.cta-section h2 em { color: var(--terra); font-style: italic; }
+.cta-section p { font-size: 16px; color: rgba(255,255,255,.6); margin-bottom: 36px; line-height: 1.6; position: relative; z-index: 1; }
+.cta-form { display: flex; gap: 8px; max-width: 400px; margin: 0 auto; position: relative; z-index: 1; }
+.cta-form input { flex: 1; padding: 13px 16px; border: 1.5px solid rgba(255,255,255,.15); border-radius: 9px; font-size: 14px; font-family: 'Source Sans 3', sans-serif; background: rgba(255,255,255,.08); color: #fff; outline: none; transition: border-color .15s; }
+.cta-form input::placeholder { color: rgba(255,255,255,.35); }
+.cta-form input:focus { border-color: var(--terra); }
+.cta-form button { background: var(--terra); color: #fff; border: none; border-radius: 9px; padding: 13px 22px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Source Sans 3', sans-serif; white-space: nowrap; transition: background .15s; }
+.cta-form button:hover { background: #B5522D; }
+
+/* ── FOOTER ── */
+footer { border-top: 1px solid var(--border); padding: 40px 0 32px; }
+.footer-inner { display: flex; align-items: flex-start; justify-content: space-between; gap: 40px; margin-bottom: 32px; flex-wrap: wrap; }
+.footer-brand .logo-text { font-family: 'Lora', serif; font-size: 18px; font-weight: 600; color: var(--charcoal); margin-bottom: 8px; }
+.footer-brand .logo-text span { color: var(--terra); }
+.footer-brand p { font-size: 13px; color: var(--muted); max-width: 220px; line-height: 1.6; }
+.footer-links h4 { font-size: 12px; font-weight: 700; color: var(--charcoal); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+.footer-links a { display: block; font-size: 13px; color: var(--muted); text-decoration: none; margin-bottom: 7px; transition: color .15s; }
+.footer-links a:hover { color: var(--terra); }
+.footer-bottom { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding-top: 24px; border-top: 1px solid var(--border); }
+.footer-bottom p { font-size: 12px; color: var(--muted); }
+
+/* ── ANIMATIONS ── */
+.fade-up { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
+.fade-up.visible { opacity: 1; transform: translateY(0); }
+.fade-up:nth-child(2) { transition-delay: .1s; }
+.fade-up:nth-child(3) { transition-delay: .2s; }
+.fade-up:nth-child(4) { transition-delay: .3s; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 960px) {
+  .hero { grid-template-columns: 1fr; padding: 60px 0 0; gap: 40px; min-height: auto; }
+  .hero-right { display: none; }
+  .steps, .features-grid, .testimonials { grid-template-columns: 1fr 1fr; }
+  .who-grid { grid-template-columns: repeat(2,1fr); }
+  .pricing-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  nav { padding: 0 20px; }
+  .shell { padding: 0 20px; }
+  .steps, .features-grid, .testimonials, .pricing-grid { grid-template-columns: 1fr; }
+  .who-grid { grid-template-columns: 1fr 1fr; }
+  .nav-links { display: none; }
+  .cta-form { flex-direction: column; }
+  .cta-section { padding: 40px 24px; }
+  .logos-bar { padding: 16px 20px; }
+}
+
+.success-msg { display: none; font-size: 13px; color: var(--terra); font-weight: 600; margin-top: 10px; }
+.success-msg.show { display: block; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">Guest<span>.</span>Manager</a>
+  <div class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#pricing">For agencies</a>
+  </div>
+  <a href="/onboard.html" class="nav-cta">Get Started →</a>
+</nav>
+
+<!-- HERO -->
+<div class="shell">
+  <section class="hero">
+    <div class="hero-left">
+      <div class="hero-eyebrow">
+        <div class="eyebrow-dot"></div>
+        Now in early access
+      </div>
+
+      <h1>Every guest,<br/>always <em>taken care of.</em></h1>
+
+      <p class="hero-sub">Guest.Manager answers your WhatsApp, SMS, and Instagram messages automatically — in your voice, around the clock. Set up in 60 seconds. No tech skills needed.</p>
+
+      <a href="/onboard.html" class="hero-cta-btn">Set up my bot — free →</a>
+      <div class="hero-cta-sub">
+        Or <a href="#waitlist-email">join the waitlist</a> to be notified when we launch
+      </div>
+
+      <div class="hero-social-proof">
+        <div class="proof-avatars">
+          <div class="proof-avatar" style="background:#C4613A">S</div>
+          <div class="proof-avatar" style="background:#5A5650">J</div>
+          <div class="proof-avatar" style="background:#9A948C">M</div>
+          <div class="proof-avatar" style="background:#2E2C29">A</div>
+        </div>
+        <span>214 business owners already on the waitlist</span>
+      </div>
+    </div>
+
+    <div class="hero-right">
+      <div class="dashboard-mockup">
+        <div class="mock-header">
+          <div class="mock-logo">Guest<span>.</span>Manager</div>
+          <div class="mock-badge">3 Waiting</div>
+        </div>
+        <div class="mock-body">
+          <div class="mock-inbox">
+            <div class="mock-thread active">
+              <div class="mock-thread-name">Maria K.</div>
+              <div class="mock-thread-preview">Can I bring my daughter?</div>
+              <div class="mock-tags"><span class="mock-tag mt-wait">Waiting</span><span class="mock-tag mt-wa">WA</span></div>
+            </div>
+            <div class="mock-thread">
+              <div class="mock-thread-name">James R.</div>
+              <div class="mock-thread-preview">Is there parking nearby?</div>
+              <div class="mock-tags"><span class="mock-tag mt-ai">AI</span><span class="mock-tag mt-sms">SMS</span></div>
+            </div>
+            <div class="mock-thread">
+              <div class="mock-thread-name">Sofia L.</div>
+              <div class="mock-thread-preview">See you tomorrow ✨</div>
+              <div class="mock-tags"><span class="mock-tag mt-done">Done</span></div>
+            </div>
+            <div class="mock-thread">
+              <div class="mock-thread-name">Ahmed H.</div>
+              <div class="mock-thread-preview">Price for full treatment?</div>
+              <div class="mock-tags"><span class="mock-tag mt-ai">AI</span><span class="mock-tag mt-sms">SMS</span></div>
+            </div>
+            <div class="mock-thread">
+              <div class="mock-thread-name">Nina P.</div>
+              <div class="mock-thread-preview">Slots next Monday?</div>
+              <div class="mock-tags"><span class="mock-tag mt-ai">AI</span><span class="mock-tag mt-wa">WA</span></div>
+            </div>
+          </div>
+          <div class="mock-conv">
+            <div class="mock-conv-head">
+              <div class="mock-avatar">MK</div>
+              <div>
+                <div class="mock-conv-name">Maria K.</div>
+                <div class="mock-conv-meta">WhatsApp · Active now</div>
+              </div>
+              <button class="mock-resolve">Resolve</button>
+            </div>
+            <div class="mock-messages">
+              <div class="mock-msg">
+                <div class="mock-bub-avatar g">MK</div>
+                <div class="mock-bubble g">Do you have availability this Saturday?</div>
+              </div>
+              <div class="mock-msg out">
+                <div class="mock-bub-avatar a">AI</div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;">
+                  <div class="mock-ai-label">Guest.Manager AI</div>
+                  <div class="mock-bubble a">Yes! We have 11:00 and 11:30 on Saturday.</div>
+                </div>
+              </div>
+              <div class="mock-msg">
+                <div class="mock-bub-avatar g">MK</div>
+                <div class="mock-bubble g">11:30 please! Can I bring my daughter?</div>
+              </div>
+            </div>
+            <div class="mock-reply">
+              <span class="mock-reply-text">Reply to Maria…</span>
+              <button class="mock-send">Send</button>
+            </div>
+          </div>
+        </div>
+        <div class="mock-stats">
+          <div><div class="mock-stat-val">142</div><div class="mock-stat-label">Messages</div></div>
+          <div><div class="mock-stat-val">94%</div><div class="mock-stat-label">AI Handled</div></div>
+          <div><div class="mock-stat-val" style="color:var(--charcoal)">1m 42s</div><div class="mock-stat-label">Avg Reply</div></div>
+          <div><div class="mock-stat-val">4.8</div><div class="mock-stat-label">Satisfaction</div></div>
+        </div>
+      </div>
+      <div class="float-badge b1">
+        <div class="float-icon">✦</div>
+        <div class="float-text">AI replied instantly</div>
+        <div class="float-sub">While you were with a client</div>
+      </div>
+      <div class="float-badge b2">
+        <div class="float-icon">📲</div>
+        <div class="float-text">3 channels connected</div>
+        <div class="float-sub">WhatsApp · SMS · Instagram</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- CHANNELS BAR -->
+<div class="logos-bar">
+  <span class="logos-label">Works across</span>
+  <div class="channel-pill">💬 WhatsApp Business</div>
+  <div class="channel-pill">📱 SMS</div>
+  <div class="channel-pill">📸 Instagram DMs</div>
+  <div class="channel-pill">📘 Facebook Messenger</div>
+  <div class="channel-pill">🤖 Powered by Claude AI</div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="shell">
+  <section id="how">
+    <div class="section-label">How it works</div>
+    <h2 class="section-title">Up and running in <em>60 seconds.</em></h2>
+    <p class="section-sub">No technical setup. No complicated flows. Paste your link, and Guest.Manager does the rest.</p>
+    <div class="steps">
+      <div class="step fade-up">
+        <div class="step-num">01</div>
+        <div class="step-title">Paste your business URL</div>
+        <div class="step-desc">Share your Google Business, Instagram, or website link. Guest.Manager reads your hours, services, pricing, and FAQs automatically.</div>
+        <div class="step-connector">→</div>
+      </div>
+      <div class="step fade-up">
+        <div class="step-num">02</div>
+        <div class="step-title">Connect your channels</div>
+        <div class="step-desc">Link WhatsApp, SMS, Instagram, or Facebook in one click. All your guest conversations appear in a single inbox.</div>
+        <div class="step-connector">→</div>
+      </div>
+      <div class="step fade-up">
+        <div class="step-num">03</div>
+        <div class="step-title">Let the AI handle it</div>
+        <div class="step-desc">Guest.Manager answers questions, takes bookings, sends reminders, and escalates to you only when it truly matters.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="section-label">Features</div>
+    <h2 class="section-title">Not a bot. A <em>business brain.</em></h2>
+    <p class="section-sub">Guest.Manager understands context, remembers your guests, and gets smarter every week.</p>
+    <div class="features-grid">
+      <div class="feature-card fade-up">
+        <div class="feature-icon">🧠</div>
+        <div class="feature-title">Genuine AI Understanding</div>
+        <div class="feature-desc">Understands "Can I come in before noon on Friday?" — not just "availability". Handles multi-step conversations naturally.</div>
+        <span class="feature-tag">Powered by Claude</span>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-title">60-Second Setup</div>
+        <div class="feature-desc">Paste your Google Business link. We read your business, build your bot, and configure everything automatically. Zero tech skills needed.</div>
+        <span class="feature-tag">No tech required</span>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon">📥</div>
+        <div class="feature-title">Unified Inbox</div>
+        <div class="feature-desc">WhatsApp, SMS, Instagram DMs, and Facebook — all in one place. Reply manually or let AI handle it. Switch anytime.</div>
+        <span class="feature-tag">4 channels</span>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon">🪞</div>
+        <div class="feature-title">Reply Memory</div>
+        <div class="feature-desc">The AI learns from how you reply manually. Over time it starts to sound exactly like you — warm, professional, distinctly yours.</div>
+        <span class="feature-tag">Gets smarter</span>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">Guest Analytics</div>
+        <div class="feature-desc">See response times, peak hours, satisfaction scores, and which questions guests ask most. Make better decisions with real data.</div>
+        <span class="feature-tag">Growth tier</span>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon">🏢</div>
+        <div class="feature-title">Agency Dashboard</div>
+        <div class="feature-desc">Manage 50+ client accounts from one white-label dashboard. Onboard new clients in minutes, track performance across all of them.</div>
+        <span class="feature-tag">Agency tier</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- WHO IS IT FOR -->
+  <section>
+    <div class="section-label">Built for</div>
+    <h2 class="section-title">Every business with <em>guests.</em></h2>
+    <p class="section-sub">If you have customers who message you, Guest.Manager is for you.</p>
+    <div class="who-grid">
+      <div class="who-card fade-up">
+        <div class="who-icon">💆</div>
+        <div class="who-title">Salons & Spas</div>
+        <div class="who-desc">Booking confirmations, appointment reminders, product questions — all handled automatically.</div>
+      </div>
+      <div class="who-card fade-up">
+        <div class="who-icon">🍽️</div>
+        <div class="who-title">Restaurants & Cafes</div>
+        <div class="who-desc">Table reservations, menu questions, daily specials and delivery info — without lifting a finger.</div>
+      </div>
+      <div class="who-card fade-up">
+        <div class="who-icon">🏋️</div>
+        <div class="who-title">Gyms & Studios</div>
+        <div class="who-desc">Class schedules, membership questions, trial bookings — your AI is always at the front desk.</div>
+      </div>
+      <div class="who-card fade-up">
+        <div class="who-icon">🏥</div>
+        <div class="who-title">Clinics & Wellness</div>
+        <div class="who-desc">Appointment booking, service information, aftercare questions — handled professionally, 24/7.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- PRICING -->
+  <section id="pricing">
+    <div class="section-label">Pricing</div>
+    <h2 class="section-title">Simple, honest <em>pricing.</em></h2>
+    <p class="section-sub">Start free. Upgrade when you see results. No contracts, cancel anytime.</p>
+    <div class="pricing-grid">
+      <div class="price-card fade-up">
+        <div class="price-tier">Free</div>
+        <div class="price-val">$0</div>
+        <div class="price-per">forever</div>
+        <ul class="price-features">
+          <li>1 channel</li>
+          <li>100 messages / month</li>
+          <li>Basic templates</li>
+          <li>Guest.Manager branding</li>
+        </ul>
+        <button class="price-btn outline" onclick="window.location='/onboard.html'">Get started free</button>
+      </div>
+      <div class="price-card fade-up">
+        <div class="price-tier">Starter</div>
+        <div class="price-val">$19</div>
+        <div class="price-per">per month</div>
+        <ul class="price-features">
+          <li>3 channels</li>
+          <li>1,000 messages / month</li>
+          <li>Full AI (Claude-powered)</li>
+          <li>60-sec setup</li>
+          <li>Email support</li>
+        </ul>
+        <button class="price-btn solid" onclick="window.location='/onboard.html'">Get started →</button>
+      </div>
+      <div class="price-card featured fade-up">
+        <div class="price-tier">Growth <span class="price-popular">Popular</span></div>
+        <div class="price-val" style="color:#fff">$49</div>
+        <div class="price-per">per month</div>
+        <ul class="price-features">
+          <li>All channels</li>
+          <li>Unlimited messages</li>
+          <li>Reply Memory AI</li>
+          <li>Full analytics</li>
+          <li>CRM sync</li>
+          <li>Priority support</li>
+        </ul>
+        <button class="price-btn inv" onclick="window.location='/onboard.html'">Get started →</button>
+      </div>
+      <div class="price-card fade-up">
+        <div class="price-tier">Agency</div>
+        <div class="price-val">$149</div>
+        <div class="price-per">per month</div>
+        <ul class="price-features">
+          <li>50 client accounts</li>
+          <li>White-label dashboard</li>
+          <li>Reseller pricing</li>
+          <li>Bulk onboarding</li>
+          <li>Dedicated manager</li>
+        </ul>
+        <button class="price-btn outline" onclick="window.location='mailto:hello@guestmanager.co'">Contact us</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- TESTIMONIALS -->
+  <section>
+    <div class="section-label">Early feedback</div>
+    <h2 class="section-title">What business owners <em>say.</em></h2>
+    <p class="section-sub">From our beta testers — real businesses, real results.</p>
+    <div class="testimonials">
+      <div class="testimonial fade-up">
+        <div class="stars">★★★★★</div>
+        <div class="test-text">"I used to spend 2 hours every morning answering the same questions. Now I check in once a day and everything's handled. It genuinely sounds like me."</div>
+        <div class="test-author">
+          <div class="test-avatar" style="background:#C4613A">S</div>
+          <div>
+            <div class="test-name">Sara M.</div>
+            <div class="test-role">Owner, Studio Bloom · Spa & Wellness</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial fade-up">
+        <div class="stars">★★★★★</div>
+        <div class="test-text">"The setup was unbelievably fast. I pasted my Google link, connected WhatsApp, and it was live in under a minute. My clients can't tell it's AI."</div>
+        <div class="test-author">
+          <div class="test-avatar" style="background:#5A5650">R</div>
+          <div>
+            <div class="test-name">Rafael D.</div>
+            <div class="test-role">Owner, Barber District · Men's Grooming</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial fade-up">
+        <div class="stars">★★★★★</div>
+        <div class="test-text">"As an agency we manage 24 clients. The white-label dashboard is exactly what we needed. We onboarded 8 clients in one afternoon."</div>
+        <div class="test-author">
+          <div class="test-avatar" style="background:#2E2C29">L</div>
+          <div>
+            <div class="test-name">Lucia T.</div>
+            <div class="test-role">Founder, LocalPulse Agency</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- CTA SECTION -->
+<div class="shell">
+  <div class="cta-section" id="waitlist-email">
+    <h2>Ready to reclaim your <em>time?</em></h2>
+    <p>Join 214 business owners on the waitlist. First 100 get a lifetime deal at $99 — one payment, forever.</p>
+    <form class="cta-form" onsubmit="handleWaitlist(event, 'ctaEmail', 'ctaSuccess')">
+      <input type="email" id="ctaEmail" placeholder="your@email.com" required/>
+      <button type="submit">Join Waitlist</button>
+    </form>
+    <div class="success-msg" id="ctaSuccess" style="color:var(--terra-soft);margin-top:12px;">✓ You're on the list! We'll be in touch.</div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="shell">
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="logo-text">Guest<span>.</span>Manager</div>
+        <p>AI messaging for every small business. Set up in 60 seconds.</p>
+      </div>
+      <div class="footer-links">
+        <h4>Product</h4>
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#">Changelog</a>
+      </div>
+      <div class="footer-links">
+        <h4>For Agencies</h4>
+        <a href="#">White-label</a>
+        <a href="#">Reseller program</a>
+        <a href="#">Case studies</a>
+        <a href="#">Partner with us</a>
+      </div>
+      <div class="footer-links">
+        <h4>Company</h4>
+        <a href="#">About</a>
+        <a href="#">Blog</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Guest.Manager. All rights reserved.</p>
+      <p>Built with ♥ for small businesses everywhere.</p>
+    </div>
+  </footer>
+</div>
+
+<script>
+  async function handleWaitlist(e, inputId = 'ctaEmail', successId = 'ctaSuccess') {
+    e.preventDefault();
+    const input   = document.getElementById(inputId);
+    const success = document.getElementById(successId);
+    const btn     = e.target.querySelector('button[type="submit"]');
+    const email   = input.value.trim();
+    if (!email) return;
+
+    const originalText = btn.textContent;
+    btn.textContent = 'Joining…';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        input.value = '';
+        success.textContent = '✓ You\'re on the list! Check your inbox for a confirmation.';
+        success.style.color = 'var(--terra-soft)';
+        success.classList.add('show');
+        setTimeout(() => success.classList.remove('show'), 7000);
+      } else {
+        success.textContent = data.error || 'Something went wrong. Please try again.';
+        success.style.color = '#ff6b6b';
+        success.classList.add('show');
+        setTimeout(() => success.classList.remove('show'), 5000);
+      }
+    } catch (err) {
+      success.textContent = 'Network error. Please try again.';
+      success.style.color = '#ff6b6b';
+      success.classList.add('show');
+      setTimeout(() => success.classList.remove('show'), 5000);
+    } finally {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
