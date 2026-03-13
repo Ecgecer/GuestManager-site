@@ -75,22 +75,22 @@ module.exports = async function handler(req, res) {
     // ── WEBHOOKS ────────────────────────────────────────────
     if (path === '/api/webhook/whatsapp') {
       const business = await getBusinessProfile(DEFAULT_BUSINESS_ID);
-      return whatsapp.handle(req, res, business);
+      return whatsapp.handleWebhook(req, res, { business });
     }
 
     if (path === '/api/webhook/sms') {
       const business = await getBusinessProfile(DEFAULT_BUSINESS_ID);
-      return sms.handle(req, res, business);
+      return sms.handleWebhook(req, res, { business });
     }
 
     if (path === '/api/webhook/instagram') {
       const business = await getBusinessProfile(DEFAULT_BUSINESS_ID);
-      return instagram.handle(req, res, business);
+      return instagram.handleWebhook(req, res, { business });
     }
 
     if (path === '/api/webhook/facebook') {
       const business = await getBusinessProfile(DEFAULT_BUSINESS_ID);
-      return facebook.handle(req, res, business);
+      return facebook.handleWebhook(req, res, { business });
     }
 
     // ── SUBSCRIBE (waitlist) ─────────────────────────────────
