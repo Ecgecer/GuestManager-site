@@ -1,0 +1,15 @@
+{
+  "name": "guestmanager-site",
+  "version": "1.0.0",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  }
+}
+```
+5. Commit changes
+
+---
+
+After all 3 commits, Vercel will auto-deploy. Watch the deployment at **vercel.com → your project → Deployments**. Once it goes green, hit:
+```
+https://guestmanager.co/api/health
