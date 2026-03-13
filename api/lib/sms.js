@@ -12,7 +12,7 @@ async function handleWebhook(req, res, { business, sendEscalationAlert }) {
 
   console.log('[SMS] Incoming from:', contactId, 'text:', text);
 
-  const session = getSession(business.id, 'sms', contactId, guestName || null);
+  const session = await getSession(business.id, 'sms', contactId, guestName || null);
 
   if (session.escalated) {
     console.log('[SMS] Session escalated, skipping AI');
@@ -20,7 +20,7 @@ async function handleWebhook(req, res, { business, sendEscalationAlert }) {
     return res.status(200).send('<Response></Response>');
   }
 
-  addToHistory(session, 'user', text);
+  await addToHistory(session, 'user', text);
 
   console.log('[SMS] Calling AI...');
 
@@ -56,7 +56,7 @@ async function handleWebhook(req, res, { business, sendEscalationAlert }) {
   if (aiResult.reply) {
     try {
       await sendSMS(contactId, aiResult.reply, business);
-      addToHistory(session, 'assistant', aiResult.reply);
+      await addToHistory(session, 'assistant', aiResult.reply);
       console.log('[SMS] Reply sent successfully');
     } catch (sendErr) {
       console.error('[SMS] Failed to send reply:', sendErr.message);
