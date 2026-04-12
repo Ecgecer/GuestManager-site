@@ -171,6 +171,19 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // ── USAGE SUMMARY ────────────────────────────────────────
+    if (path === '/api/usage' && req.method === 'GET') {
+      const businessId = query.businessId || DEFAULT_BUSINESS_ID;
+      try {
+        const { getUsageSummary } = require('./lib/usage-tracker');
+        const usage = await getUsageSummary(businessId, store.supabase);
+        if (!usage) return res.status(404).json({ error: 'Business not found' });
+        return res.status(200).json({ success: true, usage });
+      } catch (err) {
+        return res.status(500).json({ error: err.message });
+      }
+    }
+
     // ── SPACES: LIST ─────────────────────────────────────────
     if (path === '/api/spaces' && req.method === 'GET') {
       const businessId = query.businessId || DEFAULT_BUSINESS_ID;
