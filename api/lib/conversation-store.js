@@ -152,6 +152,18 @@ async function addToHistory(session, role, content, confidence = null) {
     }).eq('id', session.id).then(({ error }) => {
       if (error) console.error('[Store] Failed to update conversation:', error);
     });
+
+    // If owner replied manually — maybe trigger Reply Memory analysis
+    if (dbRole === 'owner') {
+      try {
+        const { maybeAnalyse } = require('./reply-memory');
+        maybeAnalyse(session.businessId, supabase).catch(err =>
+          console.error('[Store] Reply Memory trigger failed:', err.message)
+        );
+      } catch (err) {
+        // reply-memory module not available yet — skip silently
+      }
+    }
   }
 }
 
