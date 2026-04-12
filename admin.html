@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin — Guest.Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #111009;
+  --surface:    #1A1814;
+  --surface2:   #222018;
+  --surface3:   #2C2A22;
+  --border:     rgba(255,255,255,.06);
+  --border2:    rgba(255,255,255,.11);
+  --terra:      #D4734A;
+  --terra-soft: rgba(212,115,74,.14);
+  --terra-dim:  rgba(212,115,74,.07);
+  --text:       #EDE9E3;
+  --mid:        #A8A094;
+  --muted:      #635D55;
+  --green:      #3DBE7A;
+  --green-soft: rgba(61,190,122,.11);
+  --yellow:     #F0B429;
+  --yellow-soft:rgba(240,180,41,.1);
+  --red:        #E05252;
+  --red-soft:   rgba(224,82,82,.1);
+  --blue:       #5B9CF6;
+  --blue-soft:  rgba(91,156,246,.1);
+  --gold:       #E8C56A;
+}
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: 'Source Sans 3', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── PIN GATE ── */
+.pin-gate {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pin-logo {
+  font-family: 'Lora', serif;
+  font-size: 18px; font-weight: 700; color: var(--text);
+}
+.pin-logo span { color: var(--terra); }
+
+.pin-box {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 32px;
+  width: 320px;
+  text-align: center;
+}
+
+.pin-title { font-family: 'Lora', serif; font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.pin-sub { font-size: 12px; color: var(--muted); margin-bottom: 24px; }
+
+.pin-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1.5px solid var(--border2);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 20px;
+  font-family: 'DM Mono', monospace;
+  color: var(--text);
+  text-align: center;
+  letter-spacing: 8px;
+  outline: none;
+  margin-bottom: 12px;
+  transition: border-color .2s;
+}
+.pin-input:focus { border-color: var(--terra); }
+.pin-input.error { border-color: var(--red); animation: shake .3s ease; }
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+.pin-btn {
+  width: 100%; padding: 12px;
+  background: var(--terra); color: #fff;
+  border: none; border-radius: 10px;
+  font-size: 14px; font-weight: 700;
+  font-family: 'Source Sans 3', sans-serif;
+  cursor: pointer; transition: background .15s;
+}
+.pin-btn:hover { background: #C4613A; }
+.pin-error { font-size: 12px; color: var(--red); margin-top: 10px; }
+
+/* ── TOPBAR ── */
+.topbar {
+  height: 52px; min-height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 24px; gap: 16px;
+  flex-shrink: 0;
+}
+
+.admin-logo { font-family: 'Lora', serif; font-size: 15px; font-weight: 700; color: var(--text); }
+.admin-logo span { color: var(--terra); }
+
+.admin-badge {
+  font-size: 9px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  background: var(--terra-soft); color: var(--terra);
+  border: 1px solid rgba(212,115,74,.25);
+  border-radius: 6px; padding: 3px 8px;
+}
+
+.topbar-space { flex: 1; }
+
+.health-row { display: flex; align-items: center; gap: 10px; }
+.health-dot { width: 7px; height: 7px; border-radius: 50%; }
+.health-label { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+.refresh-btn {
+  padding: 6px 14px; border-radius: 7px;
+  font-size: 11px; font-weight: 600;
+  background: var(--surface2); color: var(--mid);
+  border: 1px solid var(--border2);
+  cursor: pointer; font-family: 'Source Sans 3', sans-serif;
+  transition: all .15s;
+}
+.refresh-btn:hover { color: var(--text); }
+
+.topbar-time {
+  font-size: 11px; color: var(--muted);
+  font-family: 'DM Mono', monospace;
+}
+
+/* ── LAYOUT ── */
+.body-wrap {
+  flex: 1; display: flex;
+  overflow: hidden; min-height: 0;
+}
+
+/* ── MAIN ── */
+.main {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; min-width: 0;
+}
+
+/* ── STATS ROW ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.stat-cell {
+  background: var(--surface);
+  padding: 14px 18px;
+  cursor: default;
+  transition: background .15s;
+}
+.stat-cell:hover { background: var(--surface2); }
+
+.stat-val {
+  font-family: 'Lora', serif;
+  font-size: 22px; font-weight: 700;
+  color: var(--text); line-height: 1;
+  margin-bottom: 4px;
+  display: flex; align-items: baseline; gap: 5px;
+}
+.stat-delta { font-size: 11px; font-weight: 700; font-family: 'Source Sans 3', sans-serif; }
+.delta-up   { color: var(--green); }
+.delta-down { color: var(--red); }
+.stat-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+/* ── CONTENT ── */
+.content {
+  flex: 1; display: flex;
+  overflow: hidden; min-height: 0;
+}
+
+/* ── TABLE SECTION ── */
+.table-section {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; min-width: 0;
+}
+
+.table-toolbar {
+  padding: 12px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+  flex-shrink: 0;
+}
+
+.toolbar-title {
+  font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .6px;
+  color: var(--muted);
+}
+
+.search-input {
+  flex: 1; max-width: 280px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-size: 12px; color: var(--text);
+  font-family: 'Source Sans 3', sans-serif;
+  outline: none; transition: border-color .15s;
+}
+.search-input:focus { border-color: rgba(212,115,74,.4); }
+.search-input::placeholder { color: var(--muted); }
+
+.filter-btns { display: flex; gap: 4px; }
+.filter-btn {
+  padding: 5px 12px; border-radius: 6px;
+  font-size: 11px; font-weight: 600;
+  background: transparent; color: var(--muted);
+  border: 1px solid transparent;
+  cursor: pointer; font-family: 'Source Sans 3', sans-serif;
+  transition: all .15s;
+}
+.filter-btn:hover { color: var(--text); }
+.filter-btn.active { background: var(--terra-soft); color: var(--terra); border-color: rgba(212,115,74,.2); }
+
+/* ── TABLE ── */
+.table-wrap {
+  flex: 1; overflow-y: auto;
+}
+.table-wrap::-webkit-scrollbar { width: 4px; }
+.table-wrap::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+
+table {
+  width: 100%; border-collapse: collapse;
+}
+
+thead th {
+  padding: 10px 16px;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .7px;
+  color: var(--muted);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+  position: sticky; top: 0; z-index: 2;
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background .12s;
+  cursor: pointer;
+}
+tbody tr:hover { background: var(--surface2); }
+
+tbody td {
+  padding: 11px 16px;
+  font-size: 12px; color: var(--mid);
+  vertical-align: middle;
+}
+
+.client-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.client-type { font-size: 10px; color: var(--muted); }
+.client-id   { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); margin-top: 1px; }
+
+.plan-badge {
+  font-size: 9px; font-weight: 800;
+  padding: 3px 8px; border-radius: 5px;
+  text-transform: uppercase; letter-spacing: .5px;
+  white-space: nowrap;
+}
+.plan-trial   { background: var(--yellow-soft); color: var(--yellow); border: 1px solid rgba(240,180,41,.2); }
+.plan-starter { background: var(--terra-soft); color: var(--terra); border: 1px solid rgba(212,115,74,.2); }
+.plan-growth  { background: var(--green-soft); color: var(--green); border: 1px solid rgba(61,190,122,.2); }
+.plan-agency  { background: var(--blue-soft); color: var(--blue); border: 1px solid rgba(91,156,246,.2); }
+
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  display: inline-block; margin-right: 6px;
+}
+
+/* ── USAGE BAR ── */
+.usage-bar-wrap { width: 100px; }
+.usage-bar-track {
+  height: 5px; background: var(--surface3);
+  border-radius: 3px; overflow: hidden; margin-bottom: 3px;
+}
+.usage-bar-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+.usage-nums { font-size: 9px; color: var(--muted); font-family: 'DM Mono', monospace; display: flex; justify-content: space-between; }
+
+.action-btns { display: flex; gap: 5px; }
+.act-btn {
+  padding: 4px 10px; border-radius: 5px;
+  font-size: 10px; font-weight: 600;
+  background: var(--surface3); color: var(--mid);
+  border: 1px solid var(--border);
+  cursor: pointer; transition: all .15s;
+  font-family: 'Source Sans 3', sans-serif;
+  text-decoration: none;
+}
+.act-btn:hover { color: var(--text); border-color: var(--border2); }
+.act-btn.primary { background: var(--terra-soft); color: var(--terra); border-color: rgba(212,115,74,.2); }
+.act-btn.primary:hover { background: rgba(212,115,74,.25); }
+
+.revenue-val { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 600; color: var(--green); }
+.overage-val { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--yellow); }
+
+/* ── RIGHT PANEL ── */
+.right-panel {
+  width: 280px; min-width: 280px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+.rp-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rp-title {
+  font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .8px;
+  color: var(--muted); margin-bottom: 12px;
+}
+
+.health-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0;
+  font-size: 12px;
+}
+.health-name { flex: 1; color: var(--mid); }
+.health-status { font-size: 10px; font-weight: 700; }
+.hs-ok   { color: var(--green); }
+.hs-warn { color: var(--yellow); }
+.hs-err  { color: var(--red); }
+
+/* ── ACTIVITY FEED ── */
+.activity-feed { flex: 1; overflow-y: auto; padding: 14px 16px; }
+.activity-feed::-webkit-scrollbar { width: 3px; }
+.activity-feed::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+
+.feed-label {
+  font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .8px;
+  color: var(--muted); margin-bottom: 10px;
+}
+
+.feed-item {
+  display: flex; gap: 8px; align-items: flex-start;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.feed-item:last-child { border-bottom: none; }
+
+.feed-icon {
+  width: 24px; height: 24px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; flex-shrink: 0;
+  background: var(--surface2);
+}
+.feed-body { flex: 1; }
+.feed-text { font-size: 11px; color: var(--mid); line-height: 1.5; }
+.feed-text strong { color: var(--text); }
+.feed-time { font-size: 9px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 2px; }
+
+/* ── MRR CHART ── */
+.mrr-bars {
+  display: flex; align-items: flex-end;
+  gap: 4px; height: 48px; margin-top: 4px;
+}
+.mrr-bar { flex: 1; border-radius: 3px 3px 0 0; transition: background .2s; cursor: default; }
+.mrr-bar:hover { opacity: .8; }
+
+.mrr-labels { display: flex; gap: 4px; margin-top: 4px; }
+.mrr-label { flex: 1; font-size: 8px; color: var(--muted); text-align: center; font-family: 'DM Mono', monospace; }
+
+/* ── DETAIL DRAWER ── */
+.drawer {
+  position: fixed; right: 0; top: 52px; bottom: 0;
+  width: 400px;
+  background: var(--surface);
+  border-left: 1px solid var(--border2);
+  transform: translateX(100%);
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+  z-index: 100;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: -8px 0 40px rgba(0,0,0,.4);
+}
+.drawer.open { transform: translateX(0); }
+
+.drawer-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.drawer-close {
+  margin-left: auto;
+  background: transparent; border: none;
+  color: var(--muted); font-size: 18px;
+  cursor: pointer; transition: color .15s;
+}
+.drawer-close:hover { color: var(--text); }
+.drawer-biz-name { font-family: 'Lora', serif; font-size: 16px; font-weight: 700; color: var(--text); }
+.drawer-biz-type { font-size: 11px; color: var(--muted); }
+
+.drawer-body { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+.drawer-body::-webkit-scrollbar { width: 3px; }
+.drawer-body::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+
+.drow {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px;
+}
+.drow-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin-bottom: 10px; }
+.drow-stat { display: flex; justify-content: space-between; padding: 5px 0; font-size: 12px; border-bottom: 1px solid var(--border); }
+.drow-stat:last-child { border-bottom: none; }
+.drow-key { color: var(--muted); }
+.drow-val { color: var(--text); font-weight: 600; font-family: 'DM Mono', monospace; font-size: 11px; }
+
+.drawer-actions { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+.drawer-act {
+  flex: 1; padding: 9px; border-radius: 8px;
+  font-size: 12px; font-weight: 700;
+  font-family: 'Source Sans 3', sans-serif;
+  cursor: pointer; border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--mid);
+  transition: all .15s; text-align: center; text-decoration: none;
+}
+.drawer-act:hover { color: var(--text); }
+.drawer-act.primary { background: var(--terra); color: #fff; border-color: var(--terra); }
+.drawer-act.primary:hover { background: #C4613A; }
+
+/* ── SPINNER ── */
+.spinner { width: 20px; height: 20px; border: 2px solid var(--border2); border-top-color: var(--terra); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ── PIN GATE ── -->
+<div class="pin-gate" id="pinGate">
+  <div class="pin-logo">Guest<span>.</span>Manager</div>
+  <div class="pin-box">
+    <div class="pin-title">Admin Access</div>
+    <div class="pin-sub">Enter your admin PIN to continue</div>
+    <input type="password" class="pin-input" id="pinInput" maxlength="6" placeholder="• • • • • •"
+      onkeydown="if(event.key==='Enter') checkPin()"/>
+    <button class="pin-btn" onclick="checkPin()">Enter →</button>
+    <div class="pin-error" id="pinError"></div>
+  </div>
+</div>
+
+<!-- ── TOPBAR ── -->
+<div class="topbar">
+  <div class="admin-logo">Guest<span>.</span>Manager</div>
+  <div class="admin-badge">Admin</div>
+  <div class="topbar-space"></div>
+  <div class="health-row" id="healthRow"></div>
+  <button class="refresh-btn" onclick="loadData()">↺ Refresh</button>
+  <div class="topbar-time" id="clock"></div>
+</div>
+
+<!-- ── BODY ── -->
+<div class="body-wrap">
+  <div class="main">
+
+    <!-- STATS -->
+    <div class="stats-row" id="statsRow">
+      <div class="stat-cell"><div class="stat-val">—</div><div class="stat-label">Total Customers</div></div>
+      <div class="stat-cell"><div class="stat-val">—</div><div class="stat-label">MRR</div></div>
+      <div class="stat-cell"><div class="stat-val">—</div><div class="stat-label">AI Replies Today</div></div>
+      <div class="stat-cell"><div class="stat-val">—</div><div class="stat-label">Overage Revenue</div></div>
+      <div class="stat-cell"><div class="stat-val">—</div><div class="stat-label">Trial Customers</div></div>
+      <div class="stat-cell"><div class="stat-val">—</div><div class="stat-label">Avg Usage %</div></div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="content">
+      <div class="table-section">
+        <div class="table-toolbar">
+          <span class="toolbar-title">Customers</span>
+          <input type="text" class="search-input" placeholder="Search by name or type…" oninput="filterTable(this.value)"/>
+          <div class="filter-btns">
+            <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+            <button class="filter-btn" onclick="setFilter('trial',this)">Trial</button>
+            <button class="filter-btn" onclick="setFilter('starter',this)">Starter</button>
+            <button class="filter-btn" onclick="setFilter('growth',this)">Growth</button>
+            <button class="filter-btn" onclick="setFilter('agency',this)">Agency</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Business</th>
+                <th>Plan</th>
+                <th>AI Usage</th>
+                <th>Messages</th>
+                <th>Overage</th>
+                <th>Revenue</th>
+                <th>Status</th>
+                <th>Last Active</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div class="right-panel">
+        <div class="rp-section">
+          <div class="rp-title">System Health</div>
+          <div id="healthPanel"></div>
+        </div>
+
+        <div class="rp-section">
+          <div class="rp-title">MRR — Last 6 Months</div>
+          <div class="mrr-bars" id="mrrBars"></div>
+          <div class="mrr-labels" id="mrrLabels"></div>
+        </div>
+
+        <div class="activity-feed">
+          <div class="feed-label">Recent Activity</div>
+          <div id="activityFeed"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── DETAIL DRAWER ── -->
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-biz-name" id="drawerName">—</div>
+      <div class="drawer-biz-type" id="drawerType">—</div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+  <div class="drawer-actions">
+    <a class="drawer-act" id="drawerInbox" href="#">View Inbox</a>
+    <a class="drawer-act" id="drawerBilling" href="#">Billing Page</a>
+    <button class="drawer-act primary" onclick="copyEmail()">Copy Email</button>
+  </div>
+</div>
+
+<script>
+// ── PIN ───────────────────────────────────────────────────────
+const ADMIN_PIN = '060199'; // Change this to your preferred PIN
+let activeFilter = 'all';
+let allCustomers = [];
+let selectedCustomer = null;
+
+function checkPin() {
+  const val = document.getElementById('pinInput').value;
+  if (val === ADMIN_PIN) {
+    document.getElementById('pinGate').style.display = 'none';
+    loadData();
+    startClock();
+  } else {
+    const input = document.getElementById('pinInput');
+    input.classList.add('error');
+    document.getElementById('pinError').textContent = 'Incorrect PIN. Try again.';
+    input.value = '';
+    setTimeout(() => input.classList.remove('error'), 500);
+  }
+}
+
+document.getElementById('pinInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPin();
+});
+
+// ── CLOCK ─────────────────────────────────────────────────────
+function startClock() {
+  const el = document.getElementById('clock');
+  function tick() {
+    el.textContent = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ── DEMO DATA ─────────────────────────────────────────────────
+const DEMO_CUSTOMERS = [
+  { id: 'c1', name: 'Studio Bloom', type: 'Spa & Wellness', plan: 'growth', aiUsed: 847, aiCap: 1000, guestMsgs: 1102, overageMsgs: 0, overageCost: 0, monthlyRevenue: 49, status: 'active', lastActive: '2m ago', channel: 'sms', location: 'Berlin Mitte', email: 'owner@studiobloom.com', trialDaysLeft: null, conversations: 42 },
+  { id: 'c2', name: 'Barber District', type: "Men's Grooming", plan: 'starter', aiUsed: 198, aiCap: 250, guestMsgs: 245, overageMsgs: 0, overageCost: 0, monthlyRevenue: 19, status: 'active', lastActive: '1h ago', channel: 'whatsapp', location: 'Prenzlauer Berg', email: 'info@barberdistrict.de', trialDaysLeft: null, conversations: 21 },
+  { id: 'c3', name: 'Yoga Berlin', type: 'Fitness Studio', plan: 'trial', aiUsed: 67, aiCap: 250, guestMsgs: 89, overageMsgs: 0, overageCost: 0, monthlyRevenue: 0, status: 'trial', lastActive: '3h ago', channel: 'sms', location: 'Friedrichshain', email: 'hello@yogaberlin.de', trialDaysLeft: 9, conversations: 11 },
+  { id: 'c4', name: 'Café Morgen', type: 'Restaurant & Café', plan: 'starter', aiUsed: 312, aiCap: 250, guestMsgs: 389, overageMsgs: 62, overageCost: 1.86, monthlyRevenue: 20.86, status: 'active', lastActive: '15m ago', channel: 'whatsapp', location: 'Mitte', email: 'manager@cafemorgen.de', trialDaysLeft: null, conversations: 58 },
+  { id: 'c5', name: 'Praxis Zentrum', type: 'Medical Clinic', plan: 'growth', aiUsed: 234, aiCap: 1000, guestMsgs: 301, overageMsgs: 0, overageCost: 0, monthlyRevenue: 49, status: 'active', lastActive: '45m ago', channel: 'sms', location: 'Charlottenburg', email: 'admin@praxiszentrum.de', trialDaysLeft: null, conversations: 34 },
+  { id: 'c6', name: 'LocalPulse Agency', type: 'Marketing Agency', plan: 'agency', aiUsed: 3840, aiCap: null, guestMsgs: 4920, overageMsgs: 0, overageCost: 0, monthlyRevenue: 149, status: 'active', lastActive: '8m ago', channel: 'whatsapp', location: 'Hamburg', email: 'lucia@localpulse.de', trialDaysLeft: null, conversations: 187 },
+  { id: 'c7', name: 'Nail Studio K', type: 'Beauty', plan: 'trial', aiUsed: 12, aiCap: 250, guestMsgs: 16, overageMsgs: 0, overageCost: 0, monthlyRevenue: 0, status: 'trial', lastActive: '2d ago', channel: 'sms', location: 'Neukölln', email: 'contact@nailstudiok.de', trialDaysLeft: 2, conversations: 4 },
+];
+
+const DEMO_ACTIVITY = [
+  { icon: '🆕', text: '<strong>Nail Studio K</strong> started a trial', time: '2 days ago' },
+  { icon: '💳', text: '<strong>Café Morgen</strong> entered overage — $1.86 so far', time: '1 day ago' },
+  { icon: '⚠️', text: '<strong>Studio Bloom</strong> hit 80% usage', time: '3h ago' },
+  { icon: '💬', text: '<strong>Barber District</strong> received 14 new messages', time: '1h ago' },
+  { icon: '🔔', text: '<strong>Nail Studio K</strong> trial ends in 2 days', time: '30m ago' },
+  { icon: '📈', text: '<strong>LocalPulse Agency</strong> hit 3,840 AI replies', time: '8m ago' },
+];
+
+// ── LOAD DATA ─────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const res = await fetch('/api/admin/customers');
+    if (res.ok) {
+      const data = await res.json();
+      allCustomers = data.customers || DEMO_CUSTOMERS;
+    } else {
+      allCustomers = DEMO_CUSTOMERS;
+    }
+  } catch {
+    allCustomers = DEMO_CUSTOMERS;
+  }
+
+  renderStats();
+  renderTable();
+  renderHealth();
+  renderMRR();
+  renderActivity();
+}
+
+// ── STATS ─────────────────────────────────────────────────────
+function renderStats() {
+  const paid     = allCustomers.filter(c => c.plan !== 'trial');
+  const trials   = allCustomers.filter(c => c.plan === 'trial');
+  const mrr      = paid.reduce((s, c) => s + (c.monthlyRevenue || 0), 0);
+  const overage  = allCustomers.reduce((s, c) => s + (c.overageCost || 0), 0);
+  const aiToday  = allCustomers.reduce((s, c) => s + (c.aiUsed || 0), 0);
+  const avgUsage = allCustomers.filter(c => c.aiCap).reduce((s, c) => s + Math.round((c.aiUsed / c.aiCap) * 100), 0) / Math.max(1, allCustomers.filter(c => c.aiCap).length);
+
+  const cells = document.getElementById('statsRow').querySelectorAll('.stat-cell');
+  const data = [
+    { val: allCustomers.length, label: 'Total Customers', delta: `+${trials.length} trial`, up: true },
+    { val: '$' + mrr.toFixed(0), label: 'MRR', delta: '', up: true },
+    { val: aiToday.toLocaleString(), label: 'AI Replies This Month', delta: '', up: true },
+    { val: '$' + overage.toFixed(2), label: 'Overage Revenue', delta: overage > 0 ? '+$' + overage.toFixed(2) : '', up: true },
+    { val: trials.length, label: 'Trial Customers', delta: '', up: false },
+    { val: Math.round(avgUsage) + '%', label: 'Avg Usage', delta: '', up: true },
+  ];
+
+  data.forEach((d, i) => {
+    cells[i].innerHTML = `
+      <div class="stat-val">
+        <span>${d.val}</span>
+        ${d.delta ? `<span class="stat-delta ${d.up ? 'delta-up' : ''}">${d.delta}</span>` : ''}
+      </div>
+      <div class="stat-label">${d.label}</div>
+    `;
+  });
+}
+
+// ── TABLE ─────────────────────────────────────────────────────
+function renderTable(search = '', filter = activeFilter) {
+  const body = document.getElementById('tableBody');
+  let customers = allCustomers;
+
+  if (filter !== 'all') customers = customers.filter(c => c.plan === filter);
+  if (search) customers = customers.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.type.toLowerCase().includes(search.toLowerCase())
+  );
+
+  if (customers.length === 0) {
+    body.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--muted)">No customers found</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = customers.map(c => {
+    const pct      = c.aiCap ? Math.min(100, Math.round((c.aiUsed / c.aiCap) * 100)) : 0;
+    const barColor = c.overageMsgs > 0 ? '#E05252' : pct >= 80 ? '#F0B429' : '#3DBE7A';
+    const statusColor = c.status === 'active' ? 'var(--green)' : c.status === 'trial' ? 'var(--yellow)' : 'var(--muted)';
+
+    return `
+      <tr onclick="openDrawer('${c.id}')">
+        <td>
+          <div class="client-name">${c.name}</div>
+          <div class="client-type">${c.type} · ${c.location}</div>
+        </td>
+        <td><span class="plan-badge plan-${c.plan}">${c.plan}${c.trialDaysLeft ? ` · ${c.trialDaysLeft}d` : ''}</span></td>
+        <td>
+          <div class="usage-bar-wrap">
+            <div class="usage-bar-track">
+              <div class="usage-bar-fill" style="width:${c.aiCap ? pct : 100}%;background:${barColor}"></div>
+            </div>
+            <div class="usage-nums">
+              <span>${c.aiUsed.toLocaleString()}</span>
+              <span>${c.aiCap ? c.aiCap.toLocaleString() : '∞'}</span>
+            </div>
+          </div>
+        </td>
+        <td>${c.guestMsgs.toLocaleString()}</td>
+        <td>${c.overageMsgs > 0 ? `<span class="overage-val">+${c.overageMsgs} / $${c.overageCost.toFixed(2)}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+        <td><span class="revenue-val">$${c.monthlyRevenue.toFixed(2)}</span></td>
+        <td><span class="status-dot" style="background:${statusColor}"></span>${c.status}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:11px">${c.lastActive}</td>
+        <td onclick="event.stopPropagation()">
+          <div class="action-btns">
+            <a class="act-btn primary" href="/dashboard.html?biz=${c.id}">Inbox</a>
+            <a class="act-btn" href="/billing.html?biz=${c.id}">Billing</a>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function filterTable(val) { renderTable(val, activeFilter); }
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderTable('', f);
+}
+
+// ── HEALTH ────────────────────────────────────────────────────
+async function renderHealth() {
+  const panel = document.getElementById('healthPanel');
+  const row   = document.getElementById('healthRow');
+
+  let health = { anthropic: true, twilio: true, meta: true, whatsapp: true, supabase: true };
+  try {
+    const res = await fetch('/api/health');
+    if (res.ok) health = await res.json();
+  } catch {}
+
+  const services = [
+    { name: 'Anthropic API', key: 'anthropic' },
+    { name: 'Supabase DB',   key: 'supabase'  },
+    { name: 'Twilio SMS',    key: 'twilio'    },
+    { name: 'WhatsApp',      key: 'whatsapp'  },
+    { name: 'Meta API',      key: 'meta'      },
+  ];
+
+  panel.innerHTML = services.map(s => `
+    <div class="health-item">
+      <div class="health-dot" style="background:${health[s.key] ? 'var(--green)' : 'var(--red)'}"></div>
+      <span class="health-name">${s.name}</span>
+      <span class="health-status ${health[s.key] ? 'hs-ok' : 'hs-err'}">${health[s.key] ? 'OK' : 'DOWN'}</span>
+    </div>
+  `).join('');
+
+  const allOk = services.every(s => health[s.key]);
+  row.innerHTML = `
+    <div class="health-dot" style="background:${allOk ? 'var(--green)' : 'var(--red)'}"></div>
+    <span class="health-label">${allOk ? 'All systems operational' : 'Service degraded'}</span>
+  `;
+}
+
+// ── MRR CHART ─────────────────────────────────────────────────
+function renderMRR() {
+  const months = ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'];
+  const values = [0, 0, 19, 68, 117, allCustomers.reduce((s, c) => s + c.monthlyRevenue, 0)];
+  const max = Math.max(...values, 1);
+
+  document.getElementById('mrrBars').innerHTML = values.map((v, i) => {
+    const h = Math.max(4, Math.round((v / max) * 48));
+    const isLast = i === values.length - 1;
+    return `<div class="mrr-bar" style="height:${h}px;background:${isLast ? 'var(--terra)' : 'var(--surface3)'}" title="$${v}"></div>`;
+  }).join('');
+
+  document.getElementById('mrrLabels').innerHTML = months.map(m =>
+    `<span class="mrr-label">${m}</span>`
+  ).join('');
+}
+
+// ── ACTIVITY FEED ─────────────────────────────────────────────
+function renderActivity() {
+  document.getElementById('activityFeed').innerHTML = DEMO_ACTIVITY.map(a => `
+    <div class="feed-item">
+      <div class="feed-icon">${a.icon}</div>
+      <div class="feed-body">
+        <div class="feed-text">${a.text}</div>
+        <div class="feed-time">${a.time}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── DRAWER ────────────────────────────────────────────────────
+function openDrawer(id) {
+  selectedCustomer = allCustomers.find(c => c.id === id);
+  if (!selectedCustomer) return;
+  const c = selectedCustomer;
+
+  document.getElementById('drawerName').textContent = c.name;
+  document.getElementById('drawerType').textContent = c.type + ' · ' + c.location;
+  document.getElementById('drawerInbox').href    = `/dashboard.html?biz=${c.id}`;
+  document.getElementById('drawerBilling').href  = `/billing.html?biz=${c.id}`;
+
+  const pct = c.aiCap ? Math.round((c.aiUsed / c.aiCap) * 100) : 0;
+  const barColor = c.overageMsgs > 0 ? '#E05252' : pct >= 80 ? '#F0B429' : '#3DBE7A';
+
+  document.getElementById('drawerBody').innerHTML = `
+    <div class="drow">
+      <div class="drow-title">Account</div>
+      <div class="drow-stat"><span class="drow-key">Plan</span><span class="drow-val">${c.plan.charAt(0).toUpperCase() + c.plan.slice(1)}</span></div>
+      <div class="drow-stat"><span class="drow-key">Status</span><span class="drow-val">${c.status}</span></div>
+      ${c.trialDaysLeft ? `<div class="drow-stat"><span class="drow-key">Trial ends</span><span class="drow-val" style="color:var(--yellow)">${c.trialDaysLeft} days</span></div>` : ''}
+      <div class="drow-stat"><span class="drow-key">Channel</span><span class="drow-val">${c.channel}</span></div>
+      <div class="drow-stat"><span class="drow-key">Email</span><span class="drow-val">${c.email}</span></div>
+    </div>
+
+    <div class="drow">
+      <div class="drow-title">This Month's Usage</div>
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px">
+          <span>AI Replies</span><span style="color:${barColor};font-weight:700">${pct}%</span>
+        </div>
+        <div style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${Math.min(100,pct)}%;background:${barColor};border-radius:3px"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace">
+          <span>${c.aiUsed}</span><span>${c.aiCap || '∞'}</span>
+        </div>
+      </div>
+      <div class="drow-stat"><span class="drow-key">Guest messages</span><span class="drow-val">${c.guestMsgs.toLocaleString()}</span></div>
+      <div class="drow-stat"><span class="drow-key">Conversations</span><span class="drow-val">${c.conversations}</span></div>
+      <div class="drow-stat"><span class="drow-key">Last active</span><span class="drow-val">${c.lastActive}</span></div>
+    </div>
+
+    <div class="drow">
+      <div class="drow-title">Billing This Month</div>
+      <div class="drow-stat"><span class="drow-key">Base plan</span><span class="drow-val">$${(c.monthlyRevenue - c.overageCost).toFixed(2)}</span></div>
+      <div class="drow-stat"><span class="drow-key">Overage msgs</span><span class="drow-val" style="color:${c.overageMsgs > 0 ? 'var(--yellow)' : 'inherit'}">${c.overageMsgs}</span></div>
+      <div class="drow-stat"><span class="drow-key">Overage cost</span><span class="drow-val" style="color:${c.overageCost > 0 ? 'var(--yellow)' : 'inherit'}">$${c.overageCost.toFixed(2)}</span></div>
+      <div class="drow-stat" style="border-top:1px solid var(--border2);padding-top:8px;margin-top:4px">
+        <span class="drow-key" style="font-weight:700;color:var(--text)">Total</span>
+        <span class="drow-val" style="color:var(--green);font-size:14px">$${c.monthlyRevenue.toFixed(2)}</span>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('drawer').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  selectedCustomer = null;
+}
+
+function copyEmail() {
+  if (!selectedCustomer) return;
+  navigator.clipboard.writeText(selectedCustomer.email);
+  const btn = event.target;
+  btn.textContent = 'Copied ✓';
+  setTimeout(() => btn.textContent = 'Copy Email', 1500);
+}
+
+// Close drawer on escape
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+// Auto-refresh every 60s
+setInterval(loadData, 60000);
+</script>
+</body>
+</html>
