@@ -847,11 +847,11 @@ nav {
         </div>
         <span class="ns-arrow">→</span>
       </a>
-      <a href="mailto:support@guestmanager.co" class="next-step-row">
+      <a href="/cdn-cgi/l/email-protection#35464045455a474175524050464158545b545250471b565a" class="next-step-row">
         <div class="ns-num">3</div>
         <div class="ns-text">
           <div class="ns-title">Need help? Contact us</div>
-          <div class="ns-sub">support@guestmanager.co</div>
+          <div class="ns-sub"><span class="__cf_email__" data-cfemail="55262025253a272115322030262138343b343230277b363a">[email&#160;protected]</span></div>
         </div>
         <span class="ns-arrow">→</span>
       </a>
@@ -860,7 +860,7 @@ nav {
 
 </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 let extractedData = null;
 
 function setUrl(url) {
@@ -1003,15 +1003,4 @@ function activateBot() {
   const name = business.name || 'Your business';
   document.getElementById('successBusinessName').textContent =
     name + ' is now live. Your AI assistant is handling messages automatically.';
-  document.getElementById('testBizName').textContent = name;
-
-  goToStep(3);
-}
-
-// Allow Enter key on URL input
-document.getElementById('urlInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') startScrape();
-});
-</script>
-</body>
-</html>
+  

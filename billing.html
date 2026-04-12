@@ -353,7 +353,7 @@ body {
     <div class="nav-item"><span class="nav-icon">💬</span> WhatsApp <span style="margin-left:auto;font-size:9px;color:var(--green);font-weight:700">Live</span></div>
   </nav>
   <div class="sidebar-footer">
-    <a href="mailto:hello@guestmanager.co" class="support-btn">
+    <a href="/cdn-cgi/l/email-protection#167e737a7a795671637365627b777877717364387579" class="support-btn">
       <span>✉️</span> Email support
     </a>
   </div>
@@ -582,7 +582,7 @@ body {
   </div><!-- end pageContent -->
 </div><!-- end main -->
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ── CONFIG ───────────────────────────────────────────────────
 const BUSINESS_ID = localStorage.getItem('gm_business_id') || 'c37e756f-1ab5-4a15-bd60-3a826e92e1db';
 const API_BASE    = '';
@@ -854,13 +854,4 @@ function renderNotifHistory(notifications, cap) {
   }).join('') + `</div>`;
 }
 
-// ── INIT ─────────────────────────────────────────────────────
-async function init() {
-  const data = await fetchUsage();
-  render(data);
-}
-
-init();
-</script>
-</body>
-</html>
+// ── INIT ────────────────────────────────────────

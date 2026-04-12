@@ -324,7 +324,7 @@ section { padding: 96px 0; }
 .who-desc { font-size: 12px; color: var(--sub); line-height: 1.6; }
 
 /* ── PRICING ── */
-.pricing-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; align-items: start; }
+.pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; align-items: start; }
 .price-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; transition: border-color .2s, box-shadow .2s; }
 .price-card:hover { border-color: var(--terra); }
 .price-card.featured { background: var(--charcoal); border-color: var(--charcoal); box-shadow: 0 8px 40px rgba(46,44,41,.2); }
@@ -671,17 +671,8 @@ footer { border-top: 1px solid var(--border); padding: 40px 0 32px; }
     <h2 class="section-title">Simple, honest <em>pricing.</em></h2>
     <p class="section-sub">Start free. Upgrade when you see results. No contracts, cancel anytime.</p>
     <div class="pricing-grid">
-      <div class="price-card fade-up">
-        <div class="price-tier">Free</div>
-        <div class="price-val">$0</div>
-        <div class="price-per">forever</div>
-        <ul class="price-features">
-          <li>1 channel</li>
-          <li>100 messages / month</li>
-          <li>Basic templates</li>
-          <li>Guest.Manager branding</li>
-        </ul>
-        <button class="price-btn outline" onclick="window.location='/onboard.html'">Get started free</button>
+      <div style="grid-column:1/-1;background:var(--charcoal);border-radius:10px;padding:12px 20px;font-size:13px;color:var(--terra-soft);font-weight:600;margin-bottom:4px;">
+        ✓ All plans include a 14-day free trial — no credit card required
       </div>
       <div class="price-card fade-up">
         <div class="price-tier">Starter</div>
@@ -689,12 +680,13 @@ footer { border-top: 1px solid var(--border); padding: 40px 0 32px; }
         <div class="price-per">per month</div>
         <ul class="price-features">
           <li>3 channels</li>
-          <li>1,000 messages / month</li>
-          <li>Full AI (Claude-powered)</li>
+          <li>250 AI replies / month</li>
+          <li>+ $0.03 per extra reply</li>
+          <li>Full Claude AI</li>
           <li>60-sec setup</li>
           <li>Email support</li>
         </ul>
-        <button class="price-btn solid" onclick="window.location='/onboard.html'">Get started →</button>
+        <button class="price-btn outline" onclick="window.location='/onboard.html'">Start free trial →</button>
       </div>
       <div class="price-card featured fade-up">
         <div class="price-tier">Growth <span class="price-popular">Popular</span></div>
@@ -702,13 +694,13 @@ footer { border-top: 1px solid var(--border); padding: 40px 0 32px; }
         <div class="price-per">per month</div>
         <ul class="price-features">
           <li>All channels</li>
-          <li>Unlimited messages</li>
+          <li>1,000 AI replies / month</li>
+          <li>+ $0.03 per extra reply</li>
           <li>Reply Memory AI</li>
           <li>Full analytics</li>
-          <li>CRM sync</li>
           <li>Priority support</li>
         </ul>
-        <button class="price-btn inv" onclick="window.location='/onboard.html'">Get started →</button>
+        <button class="price-btn inv" onclick="window.location='/onboard.html'">Start free trial →</button>
       </div>
       <div class="price-card fade-up">
         <div class="price-tier">Agency</div>
@@ -716,9 +708,9 @@ footer { border-top: 1px solid var(--border); padding: 40px 0 32px; }
         <div class="price-per">per month</div>
         <ul class="price-features">
           <li>50 client accounts</li>
+          <li>Unlimited AI replies</li>
           <li>White-label dashboard</li>
           <li>Reseller pricing</li>
-          <li>Bulk onboarding</li>
           <li>Dedicated manager</li>
         </ul>
         <button class="price-btn outline" onclick="window.location='mailto:hello@guestmanager.co'">Contact us</button>
@@ -875,5 +867,6 @@ footer { border-top: 1px solid var(--border); padding: 40px 0 32px; }
 
   document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
 </script>
+<script type="text/javascript">window.$crisp=[];window.CRISP_WEBSITE_ID="2dd60cce-ebb0-4c8a-82d1-5ccc56b9064f";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>
 </body>
 </html>

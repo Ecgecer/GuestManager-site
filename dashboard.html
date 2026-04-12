@@ -903,7 +903,7 @@ body {
       <div class="user-avatar">Y</div>
       <div class="user-info">
         <div class="user-name">You</div>
-        <div class="user-email">hello@guestmanager.co</div>
+        <div class="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bfd7dad3d3d0ffd8cadacccbd2ded1ded8dacd91dcd0">[email&#160;protected]</a></div>
       </div>
     </div>
   </div>
@@ -1114,8 +1114,13 @@ body {
 </div>
 
 <script>
-// ── DATA ──
-const threads = [
+// ── CONFIG ──────────────────────────────────────────────────
+const BUSINESS_ID = localStorage.getItem('gm_business_id') || 'c37e756f-1ab5-4a15-bd60-3a826e92e1db';
+const API_BASE    = '';  // same origin
+const REFRESH_MS  = 30000; // auto-refresh every 30s
+
+// ── DEMO FALLBACK DATA ───────────────────────────────────────
+const DEMO_THREADS = [
   {
     id: 1, name: 'Maria K.', initials: 'MK', channel: 'wa', status: 'waiting',
     preview: 'Can I bring my daughter?', time: '2m ago',
@@ -1172,9 +1177,90 @@ const threads = [
   },
 ];
 
+// ── STATE ────────────────────────────────────────────────────
+let threads      = [...DEMO_THREADS];
 let activeThread = null;
 let activeFilter = 'all';
-let aiEnabled = true;
+let aiEnabled    = true;
+let usingLiveData = false;
+
+// ── LIVE DATA FETCH ──────────────────────────────────────────
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1)  return 'Just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24)  return hrs + 'h ago';
+  return Math.floor(hrs / 24) + 'd ago';
+}
+
+function dbConvToThread(conv, index) {
+  const msgs = (conv.messages || []).map(m => ({
+    role: m.role,
+    text: m.content,
+    time: new Date(m.created_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+    conf: m.confidence ? Math.round(m.confidence * 100) : null,
+  }));
+
+  const lastMsg = msgs[msgs.length - 1];
+  const name    = conv.guest_name || conv.contact_id || 'Guest';
+  const initials = name.split(' ').map(w => w[0]).toUpperCase().join('').slice(0, 2);
+
+  return {
+    id:          conv.id,
+    name,
+    initials,
+    channel:     conv.channel === 'whatsapp' ? 'wa' : conv.channel,
+    status:      conv.escalated ? 'waiting' : (conv.status === 'resolved' ? 'done' : 'ai'),
+    preview:     lastMsg?.text?.slice(0, 60) || '…',
+    time:        timeAgo(conv.last_message_at || conv.created_at),
+    first:       new Date(conv.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+    msgCount:    conv.message_count || msgs.length,
+    lastSeen:    timeAgo(conv.last_message_at || conv.created_at),
+    unread:      conv.escalated || conv.status === 'open',
+    messages:    msgs,
+    aiSuggestion: 'Type your reply or let AI handle it.',
+    _convId:     conv.id,
+  };
+}
+
+async function fetchLiveData() {
+  try {
+    const [convRes, statsRes] = await Promise.all([
+      fetch(`${API_BASE}/api/conversations?businessId=${BUSINESS_ID}`),
+      fetch(`${API_BASE}/api/stats?businessId=${BUSINESS_ID}`),
+    ]);
+
+    if (convRes.ok) {
+      const { conversations } = await convRes.json();
+      if (conversations && conversations.length > 0) {
+        threads = conversations.map(dbConvToThread);
+        usingLiveData = true;
+
+        // Show live indicator
+        const indicator = document.querySelector('.live-indicator');
+        if (indicator) indicator.innerHTML = '<div class="live-dot"></div> Live data';
+      }
+      // else keep demo data
+    }
+
+    if (statsRes.ok) {
+      const { stats } = await statsRes.json();
+      if (stats && (stats.totalMessagesWeek > 0 || usingLiveData)) {
+        document.getElementById('s-total').textContent = stats.totalMessagesWeek || 0;
+        document.getElementById('s-ai').textContent    = stats.aiHandledRate || 0;
+        document.getElementById('s-open').textContent  = stats.escalatedWeek || 0;
+      }
+    }
+
+    renderThreads(activeFilter);
+    updateInboxBadge();
+
+  } catch (err) {
+    console.warn('[Dashboard] Live fetch failed, using demo data:', err.message);
+  }
+}
 
 // ── RENDER ──
 function renderThreads(filter = 'all', search = '') {
@@ -1322,13 +1408,22 @@ function sendReply() {
   document.getElementById('s-total').textContent = total + 1;
 }
 
-function resolveConv() {
+async function resolveConv() {
   if (!activeThread) return;
   activeThread.status = 'done';
   activeThread.unread = false;
   renderThreads(activeFilter);
   updateInboxBadge();
   showToast('✅', 'Conversation resolved', activeThread.name + ' marked as done');
+  if (activeThread._convId) {
+    try {
+      await fetch(`${API_BASE}/api/conversations/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: activeThread._convId }),
+      });
+    } catch (err) { console.warn('[Dashboard] Resolve API failed:', err.message); }
+  }
 }
 
 function toggleAI() {
@@ -1426,8 +1521,7 @@ function renderAnalytics() {
       <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${c.name}</div>
       <div style="font-family:'Lora',serif;font-size:24px;font-weight:700;color:${c.color}">${c.msgs}</div>
       <div style="font-size:12px;color:var(--muted);margin-top:2px">${c.pct}% of total</div>
-    </div>
-  `).join('');
+    </div  `).join('');
 }
 
 // ── INIT ──
@@ -1435,10 +1529,15 @@ renderThreads();
 renderAnalytics();
 updateInboxBadge();
 
-// Auto-simulate a new message after 5s for demo feel
+// Fetch live data on load then auto-refresh every 30s
+fetchLiveData();
+setInterval(fetchLiveData, REFRESH_MS);
+
+// Simulate a message after 5s only if no live data
 setTimeout(() => {
-  simulateNewMessage();
+  if (!usingLiveData) simulateNewMessage();
 }, 5000);
 </script>
+<script type="text/javascript">window.$crisp=[];window.CRISP_WEBSITE_ID="2dd60cce-ebb0-4c8a-82d1-5ccc56b9064f";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>
 </body>
 </html>
