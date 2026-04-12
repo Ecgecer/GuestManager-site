@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Usage & Billing — Guest.Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #1C1A17;
+  --surface:    #242220;
+  --surface2:   #2C2A27;
+  --surface3:   #343230;
+  --border:     rgba(255,255,255,.07);
+  --border2:    rgba(255,255,255,.12);
+  --terra:      #D4734A;
+  --terra-soft: rgba(212,115,74,.15);
+  --terra-dim:  rgba(212,115,74,.08);
+  --text:       #F0EDE8;
+  --mid:        #B0A89E;
+  --muted:      #6E6860;
+  --green:      #3DBE7A;
+  --green-soft: rgba(61,190,122,.12);
+  --yellow:     #F0B429;
+  --yellow-soft:rgba(240,180,41,.1);
+  --red:        #E05252;
+  --red-soft:   rgba(224,82,82,.12);
+  --sidebar-w:  220px;
+}
+
+html, body { min-height: 100vh; }
+
+body {
+  font-family: 'Source Sans 3', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  min-height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.sidebar-logo {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-mark { width: 30px; height: 30px; background: var(--terra); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-family: 'Lora', serif; font-size: 13px; font-weight: 700; color: #fff; }
+.logo-text { font-family: 'Lora', serif; font-size: 14px; font-weight: 700; color: var(--text); }
+.logo-text span { color: var(--terra); }
+
+.sidebar-biz { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.biz-name { font-size: 12px; font-weight: 700; color: var(--text); }
+.biz-plan-badge { display: inline-flex; align-items: center; gap: 5px; margin-top: 5px; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+.plan-trial   { background: var(--yellow-soft); color: var(--yellow); border: 1px solid rgba(240,180,41,.2); }
+.plan-starter { background: var(--terra-soft); color: var(--terra); border: 1px solid rgba(212,115,74,.2); }
+.plan-growth  { background: var(--green-soft); color: var(--green); border: 1px solid rgba(61,190,122,.2); }
+.plan-agency  { background: rgba(91,156,246,.12); color: #5B9CF6; border: 1px solid rgba(91,156,246,.2); }
+
+.sidebar-nav { padding: 10px 0; flex: 1; }
+.nav-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); padding: 8px 16px 4px; }
+.nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 16px; font-size: 12px; font-weight: 500; color: var(--mid); cursor: pointer; border-left: 2px solid transparent; text-decoration: none; transition: all .15s; }
+.nav-item:hover { color: var(--text); background: var(--surface2); }
+.nav-item.active { color: var(--terra); background: var(--terra-dim); border-left-color: var(--terra); font-weight: 600; }
+.nav-icon { font-size: 13px; width: 16px; text-align: center; }
+
+.sidebar-footer { padding: 12px 16px; border-top: 1px solid var(--border); }
+.support-btn {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 9px 12px;
+  font-size: 11px; font-weight: 600; color: var(--mid);
+  cursor: pointer; text-decoration: none;
+  transition: all .15s; width: 100%;
+}
+.support-btn:hover { color: var(--terra); border-color: rgba(212,115,74,.3); background: var(--terra-dim); }
+
+/* ── MAIN ── */
+.main { flex: 1; padding: 32px 36px; max-width: 900px; overflow-y: auto; }
+
+/* ── LOADING ── */
+.loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 16px; }
+.spinner { width: 36px; height: 36px; border: 3px solid var(--border2); border-top-color: var(--terra); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── PAGE HEADER ── */
+.page-header { margin-bottom: 28px; }
+.page-eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--terra); margin-bottom: 6px; }
+.page-title { font-family: 'Lora', serif; font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.page-sub { font-size: 13px; color: var(--muted); }
+.page-month { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ── STATUS BANNER ── */
+.status-banner {
+  border-radius: 12px; padding: 14px 18px;
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 24px;
+  border: 1px solid;
+  animation: slideDown .3s ease both;
+}
+@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+.status-banner.ok       { background: var(--green-soft); border-color: rgba(61,190,122,.2); }
+.status-banner.warn     { background: var(--yellow-soft); border-color: rgba(240,180,41,.2); }
+.status-banner.overage  { background: var(--red-soft);   border-color: rgba(224,82,82,.2); }
+.status-banner.trial    { background: var(--terra-dim);   border-color: rgba(212,115,74,.2); }
+
+.banner-icon { font-size: 22px; flex-shrink: 0; }
+.banner-body { flex: 1; }
+.banner-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.banner-sub { font-size: 12px; color: var(--mid); line-height: 1.5; }
+.banner-action {
+  padding: 7px 16px; border-radius: 7px;
+  font-size: 11px; font-weight: 700;
+  background: var(--terra); color: #fff;
+  border: none; cursor: pointer;
+  font-family: 'Source Sans 3', sans-serif;
+  transition: background .15s; white-space: nowrap;
+  text-decoration: none;
+}
+.banner-action:hover { background: #C4613A; }
+
+/* ── USAGE RING SECTION ── */
+.usage-hero {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 32px;
+  align-items: center;
+}
+
+.ring-container {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  flex-shrink: 0;
+}
+
+.usage-ring { position: relative; width: 160px; height: 160px; }
+
+.ring-svg { width: 160px; height: 160px; transform: rotate(-90deg); }
+
+.ring-track { fill: none; stroke: var(--surface2); stroke-width: 12; }
+.ring-fill {
+  fill: none; stroke-width: 12; stroke-linecap: round;
+  transition: stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1), stroke .4s;
+}
+
+.ring-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+}
+
+.ring-pct {
+  font-family: 'Lora', serif;
+  font-size: 32px; font-weight: 700;
+  color: var(--text); line-height: 1;
+}
+.ring-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-top: 3px; }
+
+.ring-counts {
+  text-align: center;
+  font-size: 12px; color: var(--muted);
+}
+.ring-used { font-size: 18px; font-weight: 700; color: var(--text); font-family: 'Lora', serif; }
+
+/* ── USAGE STATS RIGHT ── */
+.usage-stats { display: flex; flex-direction: column; gap: 14px; }
+
+.stat-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.stat-icon { font-size: 18px; flex-shrink: 0; }
+.stat-body { flex: 1; }
+.stat-label { font-size: 11px; color: var(--muted); font-weight: 500; margin-bottom: 1px; }
+.stat-val { font-size: 16px; font-weight: 700; color: var(--text); font-family: 'Lora', serif; }
+.stat-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+/* ── PROGRESS BAR ── */
+.progress-section { margin-bottom: 20px; }
+.progress-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.progress-text { font-size: 12px; font-weight: 600; color: var(--mid); }
+.progress-pct { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 700; }
+
+.progress-track {
+  height: 8px; background: var(--surface2);
+  border-radius: 10px; overflow: hidden;
+  position: relative;
+}
+.progress-fill {
+  height: 100%; border-radius: 10px;
+  transition: width 1s cubic-bezier(.4,0,.2,1);
+  position: relative;
+}
+.progress-fill::after {
+  content: '';
+  position: absolute; right: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 12px; height: 12px; border-radius: 50%;
+  background: inherit;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.threshold-marker {
+  position: absolute; top: 0; bottom: 0; width: 2px;
+  background: rgba(255,255,255,.15);
+}
+
+.progress-ticks { display: flex; justify-content: space-between; margin-top: 6px; }
+.progress-tick { font-size: 9px; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+/* ── CARDS GRID ── */
+.cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+.card-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+
+.card-body { padding: 18px; }
+
+/* ── PLAN CARD ── */
+.plan-price { font-family: 'Lora', serif; font-size: 36px; font-weight: 700; color: var(--terra); margin-bottom: 2px; }
+.plan-per { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+.plan-features { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.plan-feature { font-size: 12px; color: var(--mid); display: flex; gap: 7px; align-items: flex-start; }
+.plan-feature::before { content: '✓'; color: var(--terra); font-weight: 800; font-size: 11px; margin-top: 1px; flex-shrink: 0; }
+
+.upgrade-btn {
+  display: block; width: 100%; margin-top: 16px;
+  padding: 10px; background: var(--terra); color: #fff;
+  border: none; border-radius: 8px; font-size: 12px;
+  font-weight: 700; font-family: 'Source Sans 3', sans-serif;
+  cursor: pointer; text-align: center; text-decoration: none;
+  transition: background .15s;
+}
+.upgrade-btn:hover { background: #C4613A; }
+.upgrade-btn.secondary { background: transparent; border: 1px solid var(--border2); color: var(--mid); }
+.upgrade-btn.secondary:hover { color: var(--text); border-color: var(--terra); }
+
+/* ── OVERAGE CALCULATOR ── */
+.overage-calc { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 20px; }
+
+.calc-body { padding: 18px; }
+.calc-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 13px; border-bottom: 1px solid var(--border); }
+.calc-row:last-child { border-bottom: none; }
+.calc-key { color: var(--mid); }
+.calc-val { font-weight: 700; color: var(--text); font-family: 'DM Mono', monospace; }
+.calc-val.highlight { color: var(--terra); font-size: 15px; }
+.calc-val.green { color: var(--green); }
+
+/* ── NOTIFICATION HISTORY ── */
+.notif-list { display: flex; flex-direction: column; gap: 8px; }
+.notif-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.notif-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.notif-text { flex: 1; }
+.notif-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 1px; }
+.notif-sub { font-size: 11px; color: var(--muted); }
+.notif-time { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; white-space: nowrap; margin-left: auto; }
+
+.empty-notifs { text-align: center; padding: 24px; color: var(--muted); font-size: 12px; }
+.empty-icon { font-size: 28px; margin-bottom: 8px; }
+
+/* ── TRIAL COUNTDOWN ── */
+.trial-card {
+  background: linear-gradient(135deg, var(--surface) 0%, rgba(212,115,74,.05) 100%);
+  border: 1px solid rgba(212,115,74,.2);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 20px;
+  display: flex; gap: 16px; align-items: center;
+}
+.trial-days-box {
+  width: 72px; height: 72px; flex-shrink: 0;
+  background: var(--terra); border-radius: 12px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.trial-days-num { font-family: 'Lora', serif; font-size: 28px; font-weight: 700; color: #fff; line-height: 1; }
+.trial-days-label { font-size: 9px; font-weight: 700; color: rgba(255,255,255,.7); text-transform: uppercase; letter-spacing: .5px; }
+.trial-body { flex: 1; }
+.trial-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.trial-sub { font-size: 12px; color: var(--mid); line-height: 1.6; }
+
+/* ── FULL WIDTH SECTION ── */
+.full-section { margin-bottom: 20px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { padding: 20px; }
+  .usage-hero { grid-template-columns: 1fr; }
+  .cards-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">G</div>
+    <div class="logo-text">Guest<span>.</span>Manager</div>
+  </div>
+  <div class="sidebar-biz">
+    <div class="biz-name" id="bizName">Loading…</div>
+    <div class="biz-plan-badge plan-starter" id="planBadge">Starter</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Account</div>
+    <a class="nav-item" href="/dashboard.html"><span class="nav-icon">💬</span> Inbox</a>
+    <a class="nav-item active" href="/billing.html"><span class="nav-icon">📊</span> Usage & Billing</a>
+    <a class="nav-item" href="/dashboard.html#page-settings"><span class="nav-icon">⚙️</span> Bot Settings</a>
+    <div class="nav-label" style="margin-top:8px">Channels</div>
+    <div class="nav-item"><span class="nav-icon">📱</span> SMS <span style="margin-left:auto;font-size:9px;color:var(--green);font-weight:700">Live</span></div>
+    <div class="nav-item"><span class="nav-icon">💬</span> WhatsApp <span style="margin-left:auto;font-size:9px;color:var(--green);font-weight:700">Live</span></div>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="mailto:hello@guestmanager.co" class="support-btn">
+      <span>✉️</span> Email support
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="loading-screen" id="loadingScreen">
+    <div class="spinner"></div>
+    <div style="font-size:13px;color:var(--muted)">Loading your usage…</div>
+  </div>
+
+  <div id="pageContent" style="display:none">
+
+    <!-- HEADER -->
+    <div class="page-header">
+      <div class="page-eyebrow">Usage & Billing</div>
+      <h1 class="page-title">Your AI usage this month</h1>
+      <p class="page-sub">Your bot never stops — we just keep you informed.</p>
+      <div class="page-month" id="pageMonth"></div>
+    </div>
+
+    <!-- STATUS BANNER -->
+    <div class="status-banner" id="statusBanner" style="display:none">
+      <div class="banner-icon" id="bannerIcon"></div>
+      <div class="banner-body">
+        <div class="banner-title" id="bannerTitle"></div>
+        <div class="banner-sub" id="bannerSub"></div>
+      </div>
+      <a href="#upgrade" class="banner-action" id="bannerAction" style="display:none">Upgrade plan →</a>
+    </div>
+
+    <!-- TRIAL CARD (if on trial) -->
+    <div class="trial-card" id="trialCard" style="display:none">
+      <div class="trial-days-box">
+        <div class="trial-days-num" id="trialDays">14</div>
+        <div class="trial-days-label">days left</div>
+      </div>
+      <div class="trial-body">
+        <div class="trial-title">You're on your free 14-day trial</div>
+        <div class="trial-sub" id="trialSub">Your bot is live and handling messages. When your trial ends, choose a plan to keep it running.</div>
+      </div>
+      <a href="#upgrade" class="banner-action">Choose plan →</a>
+    </div>
+
+    <!-- USAGE HERO: RING + STATS -->
+    <div class="usage-hero">
+      <div class="ring-container">
+        <div class="usage-ring">
+          <svg class="ring-svg" viewBox="0 0 160 160">
+            <circle class="ring-track" cx="80" cy="80" r="64"/>
+            <circle class="ring-fill" id="ringFill" cx="80" cy="80" r="64"
+              stroke-dasharray="402"
+              stroke-dashoffset="402"/>
+          </svg>
+          <div class="ring-center">
+            <div class="ring-pct" id="ringPct">0%</div>
+            <div class="ring-label">of cap used</div>
+          </div>
+        </div>
+        <div class="ring-counts">
+          <div class="ring-used" id="ringUsed">0</div>
+          <div style="font-size:11px;color:var(--muted)" id="ringCap">of 250 replies</div>
+        </div>
+      </div>
+
+      <div class="usage-stats">
+        <!-- Progress bar with thresholds -->
+        <div class="progress-section">
+          <div class="progress-label">
+            <span class="progress-text">AI replies used</span>
+            <span class="progress-pct" id="progPct">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progFill" style="width:0%"></div>
+            <!-- 80% marker -->
+            <div class="threshold-marker" style="left:80%" title="80% — notification threshold"></div>
+          </div>
+          <div class="progress-ticks">
+            <span class="progress-tick">0</span>
+            <span class="progress-tick" id="tick80">80%</span>
+            <span class="progress-tick" id="tickCap">250</span>
+          </div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-icon">🤖</div>
+          <div class="stat-body">
+            <div class="stat-label">AI replies this month</div>
+            <div class="stat-val" id="statAI">0</div>
+            <div class="stat-sub" id="statAISub">0 remaining</div>
+          </div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-icon">💬</div>
+          <div class="stat-body">
+            <div class="stat-label">Guest messages received</div>
+            <div class="stat-val" id="statGuest">0</div>
+            <div class="stat-sub">inbound messages this month</div>
+          </div>
+        </div>
+
+        <div class="stat-row" id="overageRow" style="display:none">
+          <div class="stat-icon">📈</div>
+          <div class="stat-body">
+            <div class="stat-label">Overage this month</div>
+            <div class="stat-val" id="statOverage" style="color:var(--yellow)">0 extra replies</div>
+            <div class="stat-sub" id="statOverageCost">$0.00 at $0.03/reply</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARDS GRID -->
+    <div class="cards-grid">
+
+      <!-- CURRENT PLAN -->
+      <div class="card" id="planCard">
+        <div class="card-header">
+          <span class="card-title">Current Plan</span>
+          <span class="card-badge" id="planCardBadge" style="background:var(--terra-soft);color:var(--terra)">Starter</span>
+        </div>
+        <div class="card-body">
+          <div class="plan-price" id="planPrice">$19</div>
+          <div class="plan-per" id="planPer">per month</div>
+          <ul class="plan-features" id="planFeatures"></ul>
+          <a href="#upgrade" class="upgrade-btn" id="upgradeBtn">Upgrade plan →</a>
+        </div>
+      </div>
+
+      <!-- NOTIFICATION STATUS -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Notifications</span>
+          <span class="card-badge" style="background:var(--green-soft);color:var(--green)">Active</span>
+        </div>
+        <div class="card-body">
+          <div class="notif-list" id="notifStatus">
+            <div class="notif-item">
+              <div class="notif-icon" id="notif80icon">⏳</div>
+              <div class="notif-text">
+                <div class="notif-title">80% alert</div>
+                <div class="notif-sub" id="notif80sub">Sent when you reach 200 AI replies</div>
+              </div>
+            </div>
+            <div class="notif-item">
+              <div class="notif-icon" id="notif100icon">⏳</div>
+              <div class="notif-text">
+                <div class="notif-title">100% alert + overage mode</div>
+                <div class="notif-sub" id="notif100sub">Sent when cap is reached — bot keeps running</div>
+              </div>
+            </div>
+            <div class="notif-item" style="background:transparent;border-color:transparent;padding:6px 0 0">
+              <div class="notif-icon">📱</div>
+              <div class="notif-text">
+                <div class="notif-title" style="color:var(--mid);font-weight:500">Alerts sent via SMS to your registered number</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OVERAGE CALCULATOR -->
+    <div class="full-section" id="overageSection">
+      <div class="overage-calc">
+        <div class="card-header">
+          <span class="card-title">This Month's Bill Estimate</span>
+          <span class="card-badge" id="billBadge" style="background:var(--green-soft);color:var(--green)">On track</span>
+        </div>
+        <div class="calc-body">
+          <div class="calc-row">
+            <span class="calc-key">Base plan</span>
+            <span class="calc-val" id="calcBase">$19.00</span>
+          </div>
+          <div class="calc-row">
+            <span class="calc-key">AI replies used</span>
+            <span class="calc-val" id="calcUsed">0 / 250</span>
+          </div>
+          <div class="calc-row">
+            <span class="calc-key">Overage replies</span>
+            <span class="calc-val" id="calcOverage">0 × $0.03</span>
+          </div>
+          <div class="calc-row">
+            <span class="calc-key">Overage cost</span>
+            <span class="calc-val" id="calcOverageCost">$0.00</span>
+          </div>
+          <div class="calc-row" style="border-top:1px solid var(--border2);padding-top:12px;margin-top:4px">
+            <span class="calc-key" style="font-weight:700;color:var(--text)">Estimated total</span>
+            <span class="calc-val highlight" id="calcTotal">$19.00</span>
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:10px;font-style:italic" id="calcNote">
+            Your bot keeps running even after the cap — no interruptions, ever.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPGRADE SECTION -->
+    <div class="full-section" id="upgrade">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Upgrade Your Plan</span>
+        </div>
+        <div class="card-body" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" id="upgradeGrid"></div>
+      </div>
+    </div>
+
+    <!-- NOTIFICATION HISTORY -->
+    <div class="full-section">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Notification History</span>
+        </div>
+        <div class="card-body" id="notifHistory">
+          <div class="empty-notifs">
+            <div class="empty-icon">🔔</div>
+            <div>No notifications yet this month</div>
+            <div style="margin-top:4px;color:var(--muted)">You'll be notified at 80% and 100% usage</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end pageContent -->
+</div><!-- end main -->
+
+<script>
+// ── CONFIG ───────────────────────────────────────────────────
+const BUSINESS_ID = localStorage.getItem('gm_business_id') || 'c37e756f-1ab5-4a15-bd60-3a826e92e1db';
+const API_BASE    = '';
+
+// ── PLAN DEFINITIONS ─────────────────────────────────────────
+const PLANS = {
+  trial:   { name: '14-Day Trial', price: 0,   cap: 250,  overage: 0.03, color: 'yellow' },
+  starter: { name: 'Starter',      price: 19,  cap: 250,  overage: 0.03, color: 'terra'  },
+  growth:  { name: 'Growth',       price: 49,  cap: 1000, overage: 0.03, color: 'green'  },
+  agency:  { name: 'Agency',       price: 149, cap: null, overage: 0,    color: 'blue'   },
+};
+
+const PLAN_FEATURES = {
+  starter: ['3 channels', '250 AI replies/month', '+ $0.03 per extra reply', 'Full Claude AI', '60-sec setup', 'Email support'],
+  growth:  ['All channels', '1,000 AI replies/month', '+ $0.03 per extra reply', 'Reply Memory AI', 'Full analytics', 'Priority support'],
+  agency:  ['50 client accounts', 'Unlimited AI replies', 'White-label dashboard', 'Reseller pricing', 'Dedicated manager'],
+  trial:   ['All Starter features', '250 AI replies', '14 days free', 'No credit card needed'],
+};
+
+// ── DEMO DATA (fallback if no API) ───────────────────────────
+function getDemoData(pct = 67) {
+  const plan = PLANS.starter;
+  const used = Math.round(plan.cap * pct / 100);
+  return {
+    business: { name: 'Studio Bloom', plan_id: 'starter' },
+    plan,
+    usage: { month: new Date().toISOString().slice(0,7), ai_replies: used, guest_msgs: Math.round(used * 1.3), overage_msgs: 0, overage_cost: 0, notified_80: used >= plan.cap * 0.8, notified_100: used >= plan.cap },
+    meter: { pct, cap: plan.cap, used, isOverage: false },
+    trial: { active: false, daysLeft: null },
+    notifications: used >= plan.cap * 0.8 ? [{ threshold: 80, sent_at: new Date(Date.now() - 2 * 86400000).toISOString(), channel: 'sms' }] : [],
+    nextPlan: 'Growth ($49/mo)',
+  };
+}
+
+// ── FETCH USAGE ───────────────────────────────────────────────
+async function fetchUsage() {
+  try {
+    const res = await fetch(`${API_BASE}/api/usage?businessId=${BUSINESS_ID}`);
+    if (!res.ok) throw new Error('API error');
+    const data = await res.json();
+    if (data.success && data.usage) return data.usage;
+    return getDemoData();
+  } catch {
+    return getDemoData();
+  }
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function render(data) {
+  const { business, plan, usage, meter, trial, notifications, nextPlan } = data;
+  const planDef = PLANS[business.plan_id] || PLANS.starter;
+
+  // Sidebar
+  document.getElementById('bizName').textContent = business.name || 'Your Business';
+  const badge = document.getElementById('planBadge');
+  badge.textContent = planDef.name;
+  badge.className = `biz-plan-badge plan-${business.plan_id}`;
+
+  // Month
+  const now = new Date();
+  document.getElementById('pageMonth').textContent =
+    now.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+
+  // Trial card
+  if (trial.active && trial.daysLeft !== null) {
+    const tc = document.getElementById('trialCard');
+    tc.style.display = 'flex';
+    document.getElementById('trialDays').textContent = trial.daysLeft;
+    document.getElementById('trialSub').textContent =
+      trial.daysLeft <= 3
+        ? `⚠️ Only ${trial.daysLeft} days left! Choose a plan to keep your bot running.`
+        : `Your bot is live and handling messages. Trial ends in ${trial.daysLeft} days.`;
+  }
+
+  // Status banner
+  const pct = meter.pct;
+  showBanner(pct, meter.isOverage, trial, planDef, nextPlan, usage.overage_cost);
+
+  // Ring
+  animateRing(pct, meter.isOverage, trial.active);
+  document.getElementById('ringPct').textContent = (meter.cap ? pct : '∞') + (meter.cap ? '%' : '');
+  document.getElementById('ringUsed').textContent = meter.used.toLocaleString();
+  document.getElementById('ringCap').textContent = meter.cap ? `of ${meter.cap.toLocaleString()} replies` : 'unlimited replies';
+
+  // Progress bar
+  const progColor = pct >= 100 ? '#E05252' : pct >= 80 ? '#F0B429' : '#3DBE7A';
+  const progW = Math.min(100, pct);
+  document.getElementById('progFill').style.width  = progW + '%';
+  document.getElementById('progFill').style.background = progColor;
+  document.getElementById('progPct').textContent   = pct + '%';
+  document.getElementById('progPct').style.color   = progColor;
+  document.getElementById('tick80').textContent    = meter.cap ? Math.round(meter.cap * 0.8) : '80%';
+  document.getElementById('tickCap').textContent   = meter.cap ? meter.cap.toLocaleString() : '∞';
+
+  // Stats
+  document.getElementById('statAI').textContent    = usage.ai_replies.toLocaleString();
+  document.getElementById('statAISub').textContent = meter.cap
+    ? `${Math.max(0, meter.cap - usage.ai_replies)} remaining this month`
+    : 'unlimited this month';
+  document.getElementById('statGuest').textContent = usage.guest_msgs.toLocaleString();
+
+  if (usage.overage_msgs > 0) {
+    document.getElementById('overageRow').style.display = 'flex';
+    document.getElementById('statOverage').textContent = `${usage.overage_msgs} extra replies`;
+    document.getElementById('statOverageCost').textContent = `$${usage.overage_cost.toFixed(2)} at $0.03/reply`;
+  }
+
+  // Notification status
+  document.getElementById('notif80icon').textContent  = usage.notified_80  ? '✅' : '⏳';
+  document.getElementById('notif80sub').textContent   = usage.notified_80
+    ? `Sent — you were notified at ${meter.cap ? Math.round(meter.cap * 0.8) : '80%'} replies`
+    : `Will send at ${meter.cap ? Math.round(meter.cap * 0.8) : '80%'} replies`;
+  document.getElementById('notif100icon').textContent = usage.notified_100 ? '✅' : '⏳';
+  document.getElementById('notif100sub').textContent  = usage.notified_100
+    ? 'Sent — you were notified at cap. Overage billing active.'
+    : 'Will send when cap is reached — bot keeps running';
+
+  // Plan card
+  const planBadge = document.getElementById('planCardBadge');
+  planBadge.textContent = planDef.name;
+  document.getElementById('planPrice').textContent = planDef.price > 0 ? `$${planDef.price}` : 'Free';
+  document.getElementById('planPer').textContent = planDef.price > 0 ? 'per month' : 'trial period';
+  const features = PLAN_FEATURES[business.plan_id] || PLAN_FEATURES.starter;
+  document.getElementById('planFeatures').innerHTML = features.map(f => `<li class="plan-feature">${f}</li>`).join('');
+  const upgradeBtn = document.getElementById('upgradeBtn');
+  if (business.plan_id === 'agency') {
+    upgradeBtn.textContent = 'Contact us';
+    upgradeBtn.href = 'mailto:hello@guestmanager.co';
+  }
+
+  // Bill estimate
+  renderBillEstimate(planDef, usage);
+
+  // Upgrade grid
+  renderUpgradeGrid(business.plan_id);
+
+  // Notification history
+  renderNotifHistory(notifications, meter.cap);
+
+  // Show page
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('pageContent').style.display   = 'block';
+}
+
+// ── ANIMATE RING ─────────────────────────────────────────────
+function animateRing(pct, isOverage, isTrial) {
+  const circumference = 402;
+  const fill = document.getElementById('ringFill');
+  const clampedPct = Math.min(100, pct);
+  const offset = circumference - (clampedPct / 100) * circumference;
+
+  const color = isOverage ? '#E05252' : pct >= 100 ? '#E05252' : pct >= 80 ? '#F0B429' : isTrial ? '#F0B429' : '#3DBE7A';
+  fill.style.stroke = color;
+
+  setTimeout(() => {
+    fill.style.strokeDashoffset = offset;
+  }, 100);
+}
+
+// ── STATUS BANNER ─────────────────────────────────────────────
+function showBanner(pct, isOverage, trial, planDef, nextPlan, overageCost) {
+  const banner = document.getElementById('statusBanner');
+  const icon   = document.getElementById('bannerIcon');
+  const title  = document.getElementById('bannerTitle');
+  const sub    = document.getElementById('bannerSub');
+  const action = document.getElementById('bannerAction');
+
+  banner.style.display = 'flex';
+
+  if (isOverage || pct >= 100) {
+    banner.className = 'status-banner overage';
+    icon.textContent  = '📈';
+    title.textContent = 'You\'re in overage mode — your bot is still running!';
+    sub.textContent   = `You've exceeded your monthly cap. Every extra AI reply costs $0.03 (about $${overageCost.toFixed(2)} so far this month). Upgrade to get a higher cap and better value.`;
+    action.style.display = 'block';
+  } else if (pct >= 80) {
+    banner.className = 'status-banner warn';
+    icon.textContent  = '⚠️';
+    title.textContent = `You've used ${pct}% of your ${planDef.cap} monthly AI replies`;
+    sub.textContent   = `You have ${Math.round(planDef.cap * (1 - pct/100))} replies left this month. If you're growing fast, consider upgrading to ${nextPlan} for ${planDef.cap === 250 ? '1,000' : 'unlimited'} replies.`;
+    action.style.display = 'block';
+  } else if (trial.active) {
+    banner.className = 'status-banner trial';
+    icon.textContent  = '🎉';
+    title.textContent = `You're on a free trial — ${trial.daysLeft} days remaining`;
+    sub.textContent   = 'Your bot is fully live. When the trial ends, choose a plan to keep it running.';
+    action.textContent = 'Choose plan →';
+    action.style.display = 'block';
+  } else {
+    banner.className = 'status-banner ok';
+    icon.textContent  = '✅';
+    title.textContent = `All good — you've used ${pct}% of your monthly replies`;
+    sub.textContent   = 'Your bot is running smoothly. We\'ll notify you at 80% if usage picks up.';
+    action.style.display = 'none';
+  }
+}
+
+// ── BILL ESTIMATE ─────────────────────────────────────────────
+function renderBillEstimate(planDef, usage) {
+  const base    = planDef.price;
+  const ovCost  = usage.overage_cost || 0;
+  const total   = base + ovCost;
+  const badge   = document.getElementById('billBadge');
+
+  document.getElementById('calcBase').textContent        = `$${base.toFixed(2)}`;
+  document.getElementById('calcUsed').textContent        = `${usage.ai_replies} / ${planDef.cap || '∞'}`;
+  document.getElementById('calcOverage').textContent     = `${usage.overage_msgs || 0} × $0.03`;
+  document.getElementById('calcOverageCost').textContent = `$${ovCost.toFixed(2)}`;
+  document.getElementById('calcTotal').textContent       = `$${total.toFixed(2)}`;
+
+  if (ovCost > 0) {
+    badge.textContent = 'Overage active';
+    badge.style.background = 'var(--yellow-soft)';
+    badge.style.color = 'var(--yellow)';
+    document.getElementById('calcNote').textContent = `$${ovCost.toFixed(2)} in overage so far. Upgrading now resets your counter and gives you a larger cap.`;
+  }
+}
+
+// ── UPGRADE GRID ─────────────────────────────────────────────
+function renderUpgradeGrid(currentPlanId) {
+  const plans = [
+    { id: 'starter', price: '$19', name: 'Starter', cap: '250 replies/mo', highlight: currentPlanId === 'starter' },
+    { id: 'growth',  price: '$49', name: 'Growth',  cap: '1,000 replies/mo', highlight: currentPlanId === 'growth' },
+    { id: 'agency',  price: '$149', name: 'Agency', cap: 'Unlimited replies', highlight: currentPlanId === 'agency' },
+  ];
+
+  const isUpgrade = { starter: 0, growth: 1, agency: 2 };
+  const currentIdx = isUpgrade[currentPlanId] ?? 0;
+
+  document.getElementById('upgradeGrid').innerHTML = plans.map((p, i) => {
+    const isCurrent = p.id === currentPlanId;
+    const isNext    = i === currentIdx + 1;
+    return `
+      <div style="background:${isNext ? 'var(--terra-dim)' : 'var(--surface2)'};border:1px solid ${isNext ? 'rgba(212,115,74,.3)' : 'var(--border)'};border-radius:10px;padding:16px;text-align:center;">
+        ${isNext ? '<div style="font-size:9px;font-weight:800;color:var(--terra);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Recommended →</div>' : ''}
+        ${isCurrent ? '<div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Current plan</div>' : ''}
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${p.name}</div>
+        <div style="font-family:\'Lora\',serif;font-size:28px;font-weight:700;color:var(--terra);margin-bottom:2px">${p.price}</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">${p.cap}</div>
+        <a href="mailto:hello@guestmanager.co?subject=Upgrade to ${p.name}" style="display:block;padding:8px;border-radius:7px;font-size:11px;font-weight:700;text-decoration:none;transition:all .15s;${isCurrent ? 'background:transparent;border:1px solid var(--border);color:var(--muted);pointer-events:none' : isNext ? 'background:var(--terra);color:#fff' : 'background:var(--surface3);color:var(--mid);border:1px solid var(--border)'}">
+          ${isCurrent ? 'Current plan' : 'Upgrade →'}
+        </a>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── NOTIFICATION HISTORY ─────────────────────────────────────
+function renderNotifHistory(notifications, cap) {
+  const el = document.getElementById('notifHistory');
+  if (!notifications || notifications.length === 0) {
+    el.innerHTML = `<div class="empty-notifs"><div class="empty-icon">🔔</div><div>No notifications yet this month</div><div style="margin-top:4px;color:var(--muted)">We'll notify you at ${cap ? Math.round(cap * 0.8) : '80%'} and ${cap || '100%'} replies</div></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="notif-list">` + notifications.map(n => {
+    const isWarn = n.threshold === 80;
+    const d = new Date(n.sent_at);
+    const timeStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    return `
+      <div class="notif-item">
+        <div class="notif-icon">${isWarn ? '⚠️' : '🎉'}</div>
+        <div class="notif-text">
+          <div class="notif-title">${isWarn ? '80% usage alert sent' : '100% cap reached — overage mode activated'}</div>
+          <div class="notif-sub">Sent via ${n.channel?.toUpperCase() || 'SMS'}</div>
+        </div>
+        <div class="notif-time">${timeStr}</div>
+      </div>
+    `;
+  }).join('') + `</div>`;
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+async function init() {
+  const data = await fetchUsage();
+  render(data);
+}
+
+init();
+</script>
+</body>
+</html>
