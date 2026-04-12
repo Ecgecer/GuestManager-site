@@ -1,11 +1,12 @@
 /**
- * Guest.Manager — SMS Handler (with Smart Routing)
+ * Guest.Manager — SMS Handler (with Usage Tracking)
  */
 
-const { getAIResponse } = require('./ai-brain');
+const { getAIResponse }  = require('./ai-brain');
 const { getSession, addToHistory, markEscalated } = require('./conversation-store');
-const { routeMessage, loadSpaces, saveRouting } = require('./routing-engine');
-const { supabase } = require('./conversation-store');
+const { routeMessage, loadSpaces, saveRouting }   = require('./routing-engine');
+const { trackAIReply }   = require('./usage-tracker');
+const { supabase }       = require('./conversation-store');
 
 async function handleWebhook(req, res, { business }) {
   const { From: contactId, Body: text, ProfileName: guestName } = req.body;
@@ -17,7 +18,6 @@ async function handleWebhook(req, res, { business }) {
 
   console.log('[SMS] Incoming from:', contactId, 'text:', text);
 
-  // ── SESSION ──────────────────────────────────────────────
   const session = await getSession(business.id, 'sms', contactId, guestName || null);
 
   if (session.escalated) {
@@ -28,8 +28,7 @@ async function handleWebhook(req, res, { business }) {
 
   await addToHistory(session, 'guest', text);
 
-  // ── SMART ROUTING ────────────────────────────────────────
-  // Only route on first message of a conversation
+  // ── SMART ROUTING (first message only) ──────────────────────
   if (session.messageCount <= 1) {
     try {
       const spaces = await loadSpaces(business.id, supabase);
@@ -37,16 +36,14 @@ async function handleWebhook(req, res, { business }) {
         const routing = await routeMessage(text, spaces, business);
         if (routing && session.id && !session.id.startsWith('mem_')) {
           await saveRouting(session.id, routing, supabase);
-          console.log(`[SMS] Routed to space: "${routing.spaceName}" via ${routing.method}`);
         }
       }
     } catch (err) {
       console.error('[SMS] Routing error (non-fatal):', err.message);
-      // Routing errors never crash the bot
     }
   }
 
-  // ── AI RESPONSE ──────────────────────────────────────────
+  // ── AI RESPONSE ──────────────────────────────────────────────
   console.log('[SMS] Calling AI...');
   let aiResult;
   try {
@@ -57,15 +54,13 @@ async function handleWebhook(req, res, { business }) {
       guestName: session.guestName,
     });
   } catch (err) {
-    console.error('[SMS] AI call failed:', err.message);
-    console.error('[SMS] AI stack:', err);
+    console.error('[SMS] AI call failed:', err.message, err);
     res.setHeader('Content-Type', 'text/xml');
     return res.status(200).send('<Response></Response>');
   }
 
   console.log('[SMS] AI result:', JSON.stringify(aiResult));
 
-  // ── ESCALATION ───────────────────────────────────────────
   if (aiResult.escalate) {
     await markEscalated(session, aiResult.escalateReason);
     res.setHeader('Content-Type', 'text/xml');
@@ -79,7 +74,14 @@ async function handleWebhook(req, res, { business }) {
 
   await addToHistory(session, 'ai', aiResult.reply, aiResult.confidence);
 
-  // ── SEND REPLY ───────────────────────────────────────────
+  // ── USAGE TRACKING ───────────────────────────────────────────
+  // Fire and forget — never blocks the reply
+  trackAIReply(business.id, supabase, {
+    channel:   'sms',
+    contactId: contactId,
+  }).catch(err => console.error('[SMS] Usage tracking failed:', err.message));
+
+  // ── SEND REPLY ───────────────────────────────────────────────
   console.log('[SMS] Sending to:', contactId, 'from:', process.env.TWILIO_PHONE_NUMBER);
 
   try {
@@ -103,14 +105,7 @@ async function sendSMS(to, body) {
 
   const res = await fetch(
     `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: params.toString(),
-    }
+    { method: 'POST', headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() }
   );
 
   if (!res.ok) {
