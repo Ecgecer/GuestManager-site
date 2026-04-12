@@ -171,6 +171,30 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // ── REPLY MEMORY: STATUS ─────────────────────────────────
+    if (path === '/api/reply-memory' && req.method === 'GET') {
+      const businessId = query.businessId || DEFAULT_BUSINESS_ID;
+      try {
+        const { getMemoryStatus } = require('./lib/reply-memory');
+        const status = await getMemoryStatus(businessId, store.supabase);
+        return res.status(200).json({ success: true, status });
+      } catch (err) {
+        return res.status(500).json({ error: err.message });
+      }
+    }
+
+    // ── REPLY MEMORY: MANUAL TRIGGER ─────────────────────────
+    if (path === '/api/reply-memory/analyse' && req.method === 'POST') {
+      const { businessId = DEFAULT_BUSINESS_ID } = req.body || {};
+      try {
+        const { triggerManualAnalysis } = require('./lib/reply-memory');
+        const result = await triggerManualAnalysis(businessId, store.supabase);
+        return res.status(200).json(result);
+      } catch (err) {
+        return res.status(500).json({ error: err.message });
+      }
+    }
+
     // ── USAGE SUMMARY ────────────────────────────────────────
     if (path === '/api/usage' && req.method === 'GET') {
       const businessId = query.businessId || DEFAULT_BUSINESS_ID;
