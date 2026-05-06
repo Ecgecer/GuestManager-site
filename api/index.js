@@ -432,17 +432,27 @@ module.exports = async function handler(req, res) {
       const { data: biz } = await store.supabase.from('businesses').select('id').eq('user_id', user.id).single();
       if (!biz) return res.status(403).json({ error: 'No business' });
 
-      const state = Buffer.from(JSON.stringify({ businessId: biz.id, channel })).toString('base64url');
-      const scopes = channel === 'facebook'
-        ? 'pages_messaging,pages_show_list,pages_read_engagement'
-        : 'instagram_business_basic,instagram_business_manage_messages,instagram_manage_comments';
+      const state    = Buffer.from(JSON.stringify({ businessId: biz.id, channel })).toString('base64url');
+      const redirect = 'https://guestmanager.co/api/auth/meta/callback';
 
-      const oauthUrl = new URL('https://www.facebook.com/dialog/oauth');
-      oauthUrl.searchParams.set('client_id',    process.env.FACEBOOK_APP_ID);
-      oauthUrl.searchParams.set('redirect_uri', 'https://guestmanager.co/api/auth/meta/callback');
-      oauthUrl.searchParams.set('scope',        scopes);
-      oauthUrl.searchParams.set('state',        state);
-      oauthUrl.searchParams.set('response_type','code');
+      let oauthUrl;
+      if (channel === 'instagram') {
+        // Instagram Login (new API) — uses Instagram's own OAuth endpoint
+        oauthUrl = new URL('https://api.instagram.com/oauth/authorize');
+        oauthUrl.searchParams.set('client_id',     process.env.INSTAGRAM_APP_ID);
+        oauthUrl.searchParams.set('redirect_uri',  redirect);
+        oauthUrl.searchParams.set('scope',         'instagram_business_basic,instagram_business_manage_messages');
+        oauthUrl.searchParams.set('state',         state);
+        oauthUrl.searchParams.set('response_type', 'code');
+      } else {
+        // Facebook Login — for Messenger and future channels
+        oauthUrl = new URL('https://www.facebook.com/dialog/oauth');
+        oauthUrl.searchParams.set('client_id',     process.env.FACEBOOK_APP_ID);
+        oauthUrl.searchParams.set('redirect_uri',  redirect);
+        oauthUrl.searchParams.set('scope',         'pages_messaging,pages_show_list,pages_read_engagement');
+        oauthUrl.searchParams.set('state',         state);
+        oauthUrl.searchParams.set('response_type', 'code');
+      }
 
       res.setHeader('Location', oauthUrl.toString());
       return res.status(302).end();
@@ -467,46 +477,65 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Invalid state' });
       }
 
-      const appId     = process.env.FACEBOOK_APP_ID;
-      const appSecret = process.env.FACEBOOK_APP_SECRET;
-      const redirect  = 'https://guestmanager.co/api/auth/meta/callback';
-
-      // Exchange code → short-lived token
-      const tokenRes  = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&redirect_uri=${encodeURIComponent(redirect)}&code=${code}`);
-      const tokenData = await tokenRes.json();
-      if (!tokenData.access_token) {
-        console.error('[Meta OAuth] Token exchange failed:', tokenData);
-        res.setHeader('Location', '/settings.html?error=token_exchange');
-        return res.status(302).end();
-      }
-
-      // Exchange → long-lived token (60 days)
-      const longRes  = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${tokenData.access_token}`);
-      const longData = await longRes.json();
-      const userToken = longData.access_token || tokenData.access_token;
-
-      // Fetch pages + connected Instagram accounts
-      const pagesRes  = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,username}&access_token=${userToken}`);
-      const pagesData = await pagesRes.json();
-      const pages     = pagesData.data || [];
+      const redirect = 'https://guestmanager.co/api/auth/meta/callback';
 
       if (channel === 'instagram') {
-        const page = pages.find(p => p.instagram_business_account);
-        if (!page) {
-          res.setHeader('Location', '/settings.html?error=no_instagram');
+        // Instagram token exchange uses Instagram's endpoint
+        const igAppId     = process.env.INSTAGRAM_APP_ID;
+        const igAppSecret = process.env.INSTAGRAM_APP_SECRET;
+
+        const tokenRes  = await fetch('https://api.instagram.com/oauth/access_token', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body:    new URLSearchParams({ client_id: igAppId, client_secret: igAppSecret, grant_type: 'authorization_code', redirect_uri: redirect, code }).toString(),
+        });
+        const tokenData = await tokenRes.json();
+        if (!tokenData.access_token) {
+          console.error('[IG OAuth] Token exchange failed:', tokenData);
+          res.setHeader('Location', '/settings.html?error=token_exchange');
           return res.status(302).end();
         }
+
+        // Exchange for long-lived token (60 days)
+        const longRes  = await fetch(`https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${igAppSecret}&access_token=${tokenData.access_token}`);
+        const longData = await longRes.json();
+        const longToken = longData.access_token || tokenData.access_token;
+
+        // Get Instagram user info
+        const userRes  = await fetch(`https://graph.instagram.com/me?fields=id,username&access_token=${longToken}`);
+        const userData = await userRes.json();
+
         await saveCredentials(businessId, 'instagram', {
-          pageId:      page.instagram_business_account.id,
-          accessToken: page.access_token,
-          username:    page.instagram_business_account.username || '',
+          pageId:      String(userData.id || tokenData.user_id),
+          accessToken: longToken,
+          username:    userData.username || '',
         });
+
       } else if (channel === 'facebook') {
-        const page = pages[0];
+        const appId     = process.env.FACEBOOK_APP_ID;
+        const appSecret = process.env.FACEBOOK_APP_SECRET;
+
+        const tokenRes  = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&redirect_uri=${encodeURIComponent(redirect)}&code=${code}`);
+        const tokenData = await tokenRes.json();
+        if (!tokenData.access_token) {
+          console.error('[FB OAuth] Token exchange failed:', tokenData);
+          res.setHeader('Location', '/settings.html?error=token_exchange');
+          return res.status(302).end();
+        }
+
+        const longRes   = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${tokenData.access_token}`);
+        const longData  = await longRes.json();
+        const userToken = longData.access_token || tokenData.access_token;
+
+        const pagesRes  = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token&access_token=${userToken}`);
+        const pagesData = await pagesRes.json();
+        const page      = (pagesData.data || [])[0];
+
         if (!page) {
           res.setHeader('Location', '/settings.html?error=no_pages');
           return res.status(302).end();
         }
+
         await saveCredentials(businessId, 'facebook', {
           pageId:      page.id,
           accessToken: page.access_token,
