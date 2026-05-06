@@ -8,7 +8,7 @@ const { routeMessage, loadSpaces, saveRouting }   = require('./routing-engine');
 const { trackAIReply }   = require('./usage-tracker');
 const { supabase }       = require('./conversation-store');
 
-async function handleWebhook(req, res, { business }) {
+async function handleWebhook(req, res, { business, creds }) {
   const { From: contactId, Body: text, ProfileName: guestName } = req.body;
 
   if (!contactId || !text) {
@@ -85,7 +85,7 @@ async function handleWebhook(req, res, { business }) {
   console.log('[SMS] Sending to:', contactId, 'from:', process.env.TWILIO_PHONE_NUMBER);
 
   try {
-    await sendSMS(contactId, aiResult.reply);
+    await sendSMS(contactId, aiResult.reply, creds?.twilio);
     console.log('[SMS] Reply sent successfully');
   } catch (err) {
     console.error('[SMS] Send failed:', err.message);
@@ -95,10 +95,10 @@ async function handleWebhook(req, res, { business }) {
   return res.status(200).send('<Response></Response>');
 }
 
-async function sendSMS(to, body) {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken  = process.env.TWILIO_AUTH_TOKEN;
-  const from       = process.env.TWILIO_PHONE_NUMBER;
+async function sendSMS(to, body, creds) {
+  const accountSid = creds?.accountSid  || process.env.TWILIO_ACCOUNT_SID;
+  const authToken  = creds?.authToken   || process.env.TWILIO_AUTH_TOKEN;
+  const from       = creds?.phoneNumber || process.env.TWILIO_PHONE_NUMBER;
 
   const params = new URLSearchParams({ To: to, From: from, Body: body });
   const auth   = Buffer.from(`${accountSid}:${authToken}`).toString('base64');

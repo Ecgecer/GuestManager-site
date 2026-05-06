@@ -4,7 +4,7 @@
 
 const { processMessage } = require('./whatsapp');
 
-async function handleWebhook(req, res, { business, sendEscalationAlert }) {
+async function handleWebhook(req, res, { business, creds, sendEscalationAlert }) {
   res.status(200).json({ status: 'ok' });
 
   try {
@@ -34,6 +34,7 @@ async function handleWebhook(req, res, { business, sendEscalationAlert }) {
           guestName,
           text,
           business,
+          creds,
           sendEscalationAlert,
         });
       }
@@ -43,9 +44,9 @@ async function handleWebhook(req, res, { business, sendEscalationAlert }) {
   }
 }
 
-async function sendFacebookMessage(recipientId, text, business) {
-  const accessToken = process.env.META_ACCESS_TOKEN;
-  const pageId      = process.env.FACEBOOK_PAGE_ID;
+async function sendFacebookMessage(recipientId, text, creds) {
+  const accessToken = creds?.accessToken || process.env.META_ACCESS_TOKEN;
+  const pageId      = creds?.pageId      || process.env.FACEBOOK_PAGE_ID;
 
   const res = await fetch(
     `https://graph.facebook.com/v18.0/${pageId}/messages`,

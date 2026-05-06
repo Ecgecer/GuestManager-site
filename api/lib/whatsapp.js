@@ -25,7 +25,7 @@ function verifyWebhook(req, res) {
 /**
  * Process incoming WhatsApp webhook event
  */
-async function handleWebhook(req, res, { business, sendEscalationAlert }) {
+async function handleWebhook(req, res, { business, creds, sendEscalationAlert }) {
   // Acknowledge immediately — Meta requires 200 within 5 seconds
   res.status(200).json({ status: 'ok' });
 
@@ -40,7 +40,7 @@ async function handleWebhook(req, res, { business, sendEscalationAlert }) {
     for (const msg of messages) {
       // Only handle text messages for now
       if (msg.type !== 'text') {
-        await sendWhatsAppMessage(msg.from, "Thanks for your message! For media or files, please contact us directly.", business);
+        await sendWhatsAppMessage(msg.from, "Thanks for your message! For media or files, please contact us directly.", business, creds?.whatsapp);
         continue;
       }
 
@@ -55,6 +55,7 @@ async function handleWebhook(req, res, { business, sendEscalationAlert }) {
         guestName,
         text,
         business,
+        creds,
         sendEscalationAlert,
       });
     }
@@ -66,9 +67,9 @@ async function handleWebhook(req, res, { business, sendEscalationAlert }) {
 /**
  * Send a WhatsApp message
  */
-async function sendWhatsAppMessage(to, text, business) {
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-  const accessToken   = process.env.META_ACCESS_TOKEN;
+async function sendWhatsAppMessage(to, text, business, creds) {
+  const phoneNumberId = creds?.phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const accessToken   = creds?.accessToken   || process.env.META_ACCESS_TOKEN;
 
   const res = await fetch(
     `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`,
@@ -100,8 +101,8 @@ async function sendWhatsAppMessage(to, text, business) {
 /**
  * Shared message processor — used by all channels
  */
-async function processMessage({ businessId, channel, contactId, guestName, text, business, sendEscalationAlert }) {
-  const session = getSession(businessId, channel, contactId, guestName);
+async function processMessage({ businessId, channel, contactId, guestName, text, business, creds, sendEscalationAlert }) {
+  const session = await getSession(businessId, channel, contactId, guestName);
 
   // If already escalated, don't auto-reply — owner is handling it
   if (session.escalated) {
@@ -110,7 +111,7 @@ async function processMessage({ businessId, channel, contactId, guestName, text,
   }
 
   // Add incoming message to history
-  addToHistory(session, 'user', text);
+  await addToHistory(session, 'user', text);
 
   // Get AI response
   const aiResult = await getAIResponse({
@@ -122,7 +123,7 @@ async function processMessage({ businessId, channel, contactId, guestName, text,
 
   if (aiResult.escalate) {
     // Mark escalated and notify owner
-    markEscalated(session, aiResult.escalateReason);
+    await markEscalated(session, aiResult.escalateReason);
 
     const alertText = buildEscalationAlert({
       guestName:    guestName || contactId,
@@ -139,8 +140,8 @@ async function processMessage({ businessId, channel, contactId, guestName, text,
 
     // Send holding message to guest
     const holdingMsg = `Thank you for your message. I've flagged this for our team and someone will be in touch with you shortly.`;
-    await sendByChannel(channel, contactId, holdingMsg, business);
-    addToHistory(session, 'assistant', holdingMsg);
+    await sendByChannel(channel, contactId, holdingMsg, business, creds);
+    await addToHistory(session, 'assistant', holdingMsg);
 
     console.log(`[${channel}] Escalated: ${aiResult.escalateReason}`);
     return;
@@ -148,8 +149,8 @@ async function processMessage({ businessId, channel, contactId, guestName, text,
 
   // Send AI reply
   if (aiResult.reply) {
-    await sendByChannel(channel, contactId, aiResult.reply, business);
-    addToHistory(session, 'assistant', aiResult.reply);
+    await sendByChannel(channel, contactId, aiResult.reply, business, creds);
+    await addToHistory(session, 'assistant', aiResult.reply);
 
     console.log(`[${channel}] Replied (confidence: ${(aiResult.confidence * 100).toFixed(0)}%)`);
   }
@@ -158,16 +159,16 @@ async function processMessage({ businessId, channel, contactId, guestName, text,
 /**
  * Route reply to correct channel sender
  */
-async function sendByChannel(channel, contactId, text, business) {
+async function sendByChannel(channel, contactId, text, business, creds) {
   switch (channel) {
     case 'whatsapp':
-      return sendWhatsAppMessage(contactId, text, business);
+      return sendWhatsAppMessage(contactId, text, business, creds?.whatsapp);
     case 'sms':
-      return require('./sms').sendSMS(contactId, text, business);
+      return require('./sms').sendSMS(contactId, text, creds?.twilio);
     case 'instagram':
-      return require('./instagram').sendInstagramMessage(contactId, text, business);
+      return require('./instagram').sendInstagramMessage(contactId, text, creds?.instagram);
     case 'facebook':
-      return require('./facebook').sendFacebookMessage(contactId, text, business);
+      return require('./facebook').sendFacebookMessage(contactId, text, creds?.facebook);
     default:
       throw new Error(`Unknown channel: ${channel}`);
   }

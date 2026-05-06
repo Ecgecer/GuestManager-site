@@ -4,6 +4,9 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Set Up Your Bot — Guest.Manager</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/api/config.js"></script>
+<script src="/auth.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Source+Sans+3:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -924,11 +927,11 @@ async function startScrape() {
   }, 800);
 
   try {
-    const res = await fetch('/api/onboard', {
+    const res = await GM.authFetch('/api/onboard', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
     });
+    if (!res) { clearInterval(stepInterval); loading.classList.remove('active'); card.style.display = 'block'; btn.disabled = false; btn.textContent = 'Analyse →'; return; }
 
     clearInterval(stepInterval);
 
@@ -1003,4 +1006,19 @@ function activateBot() {
   const name = business.name || 'Your business';
   document.getElementById('successBusinessName').textContent =
     name + ' is now live. Your AI assistant is handling messages automatically.';
-  
+
+  goToStep(3);
+
+  // Redirect to settings after a short delay so user sees the success screen
+  setTimeout(() => { window.location.href = '/settings.html'; }, 3000);
+}
+
+// ── AUTH GATE ─────────────────────────────────────────────────
+(async function() {
+  const session = await GM.requireSession();
+  if (!session) return; // redirecting to login
+  // Page is ready — functions are already declared globally above
+})();
+</script>
+</body>
+</html>

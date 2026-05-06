@@ -8,7 +8,7 @@ const { processMessage } = require('./whatsapp');
 /**
  * Handle incoming Instagram webhook
  */
-async function handleWebhook(req, res, { business, sendEscalationAlert }) {
+async function handleWebhook(req, res, { business, creds, sendEscalationAlert }) {
   res.status(200).json({ status: 'ok' });
 
   try {
@@ -39,6 +39,7 @@ async function handleWebhook(req, res, { business, sendEscalationAlert }) {
           guestName,
           text,
           business,
+          creds,
           sendEscalationAlert,
         });
       }
@@ -51,9 +52,9 @@ async function handleWebhook(req, res, { business, sendEscalationAlert }) {
 /**
  * Send Instagram DM
  */
-async function sendInstagramMessage(recipientId, text, business) {
-  const accessToken = process.env.META_ACCESS_TOKEN;
-  const igPageId    = process.env.INSTAGRAM_PAGE_ID;
+async function sendInstagramMessage(recipientId, text, creds) {
+  const accessToken = creds?.accessToken || process.env.META_ACCESS_TOKEN;
+  const igPageId    = creds?.pageId      || process.env.INSTAGRAM_PAGE_ID;
 
   const res = await fetch(
     `https://graph.facebook.com/v18.0/${igPageId}/messages`,

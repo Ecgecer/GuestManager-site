@@ -4,6 +4,9 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Dashboard — Guest.Manager</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/api/config.js"></script>
+<script src="/auth.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -893,9 +896,12 @@ body {
     <div class="nav-item" onclick="switchPage('settings', this)">
       <span class="nav-icon">⚙️</span> Bot Settings
     </div>
-    <div class="nav-item" onclick="switchPage('settings', this)">
-      <span class="nav-icon">🔗</span> Integrations
-    </div>
+    <a class="nav-item" href="/settings.html">
+      <span class="nav-icon">🔗</span> Channel Settings
+    </a>
+    <a class="nav-item" href="/billing.html">
+      <span class="nav-icon">📊</span> Usage & Billing
+    </a>
   </nav>
 
   <div class="sidebar-footer">
@@ -903,9 +909,10 @@ body {
       <div class="user-avatar">Y</div>
       <div class="user-info">
         <div class="user-name">You</div>
-        <div class="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bfd7dad3d3d0ffd8cadacccbd2ded1ded8dacd91dcd0">[email&#160;protected]</a></div>
+        <div class="user-email" id="sidebarEmail"></div>
       </div>
     </div>
+    <button onclick="GM.signOut()" style="margin-top:10px;width:100%;padding:8px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:8px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;font-family:'Source Sans 3',sans-serif;transition:all .15s;" onmouseover="this.style.color='var(--red)';this.style.borderColor='rgba(224,82,82,.3)';this.style.background='rgba(224,82,82,.08)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='rgba(255,255,255,.1)';this.style.background='transparent'">↩ Sign out</button>
   </div>
 </aside>
 
@@ -1115,7 +1122,6 @@ body {
 
 <script>
 // ── CONFIG ──────────────────────────────────────────────────
-const BUSINESS_ID = localStorage.getItem('gm_business_id') || 'c37e756f-1ab5-4a15-bd60-3a826e92e1db';
 const API_BASE    = '';  // same origin
 const REFRESH_MS  = 30000; // auto-refresh every 30s
 
@@ -1228,9 +1234,10 @@ function dbConvToThread(conv, index) {
 async function fetchLiveData() {
   try {
     const [convRes, statsRes] = await Promise.all([
-      fetch(`${API_BASE}/api/conversations?businessId=${BUSINESS_ID}`),
-      fetch(`${API_BASE}/api/stats?businessId=${BUSINESS_ID}`),
+      GM.authFetch(`${API_BASE}/api/conversations`),
+      GM.authFetch(`${API_BASE}/api/stats`),
     ]);
+    if (!convRes || !statsRes) return; // session expired, redirecting
 
     if (convRes.ok) {
       const { conversations } = await convRes.json();
@@ -1417,9 +1424,8 @@ async function resolveConv() {
   showToast('✅', 'Conversation resolved', activeThread.name + ' marked as done');
   if (activeThread._convId) {
     try {
-      await fetch(`${API_BASE}/api/conversations/resolve`, {
+      await GM.authFetch(`${API_BASE}/api/conversations/resolve`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ conversationId: activeThread._convId }),
       });
     } catch (err) { console.warn('[Dashboard] Resolve API failed:', err.message); }
@@ -1524,19 +1530,31 @@ function renderAnalytics() {
     </div  `).join('');
 }
 
-// ── INIT ──
-renderThreads();
 renderAnalytics();
-updateInboxBadge();
 
-// Fetch live data on load then auto-refresh every 30s
-fetchLiveData();
-setInterval(fetchLiveData, REFRESH_MS);
+// ── INIT (auth gate + startup) ────────────────────────────────
+(async function() {
+  const session = await GM.requireSession();
+  if (!session) return; // redirecting to login
 
-// Simulate a message after 5s only if no live data
-setTimeout(() => {
-  if (!usingLiveData) simulateNewMessage();
-}, 5000);
+  // Show user email in sidebar
+  if (session.user && session.user.email) {
+    const emailEl = document.getElementById('sidebarEmail');
+    if (emailEl) emailEl.textContent = session.user.email;
+  }
+
+  renderThreads(activeFilter);
+  updateInboxBadge();
+
+  // Fetch live data on load then auto-refresh every 30s
+  fetchLiveData();
+  setInterval(fetchLiveData, REFRESH_MS);
+
+  // Simulate a message after 5s only if no live data
+  setTimeout(() => {
+    if (!usingLiveData) simulateNewMessage();
+  }, 5000);
+})();
 </script>
 <script type="text/javascript">window.$crisp=[];window.CRISP_WEBSITE_ID="2dd60cce-ebb0-4c8a-82d1-5ccc56b9064f";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>
 </body>

@@ -4,6 +4,9 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Usage & Billing — Guest.Manager</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/api/config.js"></script>
+<script src="/auth.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -348,14 +351,13 @@ body {
     <a class="nav-item" href="/dashboard.html"><span class="nav-icon">💬</span> Inbox</a>
     <a class="nav-item active" href="/billing.html"><span class="nav-icon">📊</span> Usage & Billing</a>
     <a class="nav-item" href="/dashboard.html#page-settings"><span class="nav-icon">⚙️</span> Bot Settings</a>
-    <div class="nav-label" style="margin-top:8px">Channels</div>
-    <div class="nav-item"><span class="nav-icon">📱</span> SMS <span style="margin-left:auto;font-size:9px;color:var(--green);font-weight:700">Live</span></div>
-    <div class="nav-item"><span class="nav-icon">💬</span> WhatsApp <span style="margin-left:auto;font-size:9px;color:var(--green);font-weight:700">Live</span></div>
+    <a class="nav-item" href="/settings.html"><span class="nav-icon">🔗</span> Channel Settings</a>
   </nav>
   <div class="sidebar-footer">
-    <a href="/cdn-cgi/l/email-protection#167e737a7a795671637365627b777877717364387579" class="support-btn">
+    <a href="mailto:hello@guestmanager.co" class="support-btn">
       <span>✉️</span> Email support
     </a>
+    <button onclick="GM.signOut()" style="margin-top:8px;width:100%;display:flex;align-items:center;gap:8px;background:transparent;border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;font-family:'Source Sans 3',sans-serif;transition:all .15s;" onmouseover="this.style.color='var(--red)';this.style.borderColor='rgba(224,82,82,.3)';this.style.background='var(--red-soft)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border2)';this.style.background='transparent'"><span>↩</span> Sign out</button>
   </div>
 </aside>
 
@@ -583,8 +585,12 @@ body {
 </div><!-- end main -->
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+(async function() {
+// ── AUTH GATE ────────────────────────────────────────────────
+const session = await GM.requireSession();
+if (!session) return; // redirecting to login
+
 // ── CONFIG ───────────────────────────────────────────────────
-const BUSINESS_ID = localStorage.getItem('gm_business_id') || 'c37e756f-1ab5-4a15-bd60-3a826e92e1db';
 const API_BASE    = '';
 
 // ── PLAN DEFINITIONS ─────────────────────────────────────────
@@ -620,7 +626,8 @@ function getDemoData(pct = 67) {
 // ── FETCH USAGE ───────────────────────────────────────────────
 async function fetchUsage() {
   try {
-    const res = await fetch(`${API_BASE}/api/usage?businessId=${BUSINESS_ID}`);
+    const res = await GM.authFetch(`${API_BASE}/api/usage`);
+    if (!res) return getDemoData();
     if (!res.ok) throw new Error('API error');
     const data = await res.json();
     if (data.success && data.usage) return data.usage;
@@ -855,3 +862,8 @@ function renderNotifHistory(notifications, cap) {
 }
 
 // ── INIT ────────────────────────────────────────
+fetchUsage().then(data => render(data));
+})();
+</script>
+</body>
+</html>

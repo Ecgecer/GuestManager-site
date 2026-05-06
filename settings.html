@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Channel Settings — Guest.Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:          #1C1A17;
+  --surface:     #242220;
+  --surface2:    #2C2A27;
+  --surface3:    #343230;
+  --border:      rgba(255,255,255,.07);
+  --border2:     rgba(255,255,255,.12);
+  --terra:       #D4734A;
+  --terra-soft:  rgba(212,115,74,.15);
+  --terra-dim:   rgba(212,115,74,.08);
+  --text:        #F0EDE8;
+  --mid:         #B0A89E;
+  --muted:       #6E6860;
+  --green:       #3DBE7A;
+  --green-soft:  rgba(61,190,122,.12);
+  --red:         #E05252;
+  --red-soft:    rgba(224,82,82,.12);
+  --sidebar-w:   220px;
+}
+
+html, body { min-height: 100vh; }
+
+body {
+  font-family: 'Source Sans 3', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  min-height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.sidebar-logo {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-mark { width: 30px; height: 30px; background: var(--terra); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-family: 'Lora', serif; font-size: 13px; font-weight: 700; color: #fff; }
+.logo-text { font-family: 'Lora', serif; font-size: 14px; font-weight: 700; color: var(--text); }
+.logo-text span { color: var(--terra); }
+
+.sidebar-biz { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.biz-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.biz-plan { font-size: 11px; color: var(--terra); font-weight: 600; margin-top: 2px; }
+
+.sidebar-nav { padding: 10px 0; flex: 1; overflow-y: auto; }
+.nav-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); padding: 8px 16px 4px; }
+.nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 16px; font-size: 12px; font-weight: 500; color: var(--mid); cursor: pointer; border-left: 2px solid transparent; text-decoration: none; transition: all .15s; }
+.nav-item:hover { color: var(--text); background: var(--surface2); }
+.nav-item.active { color: var(--terra); background: var(--terra-dim); border-left-color: var(--terra); font-weight: 600; }
+.nav-icon { font-size: 13px; width: 16px; text-align: center; }
+
+.sidebar-footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+.signout-btn {
+  display: flex; align-items: center; gap: 8px;
+  background: transparent; border: 1px solid var(--border2);
+  border-radius: 8px; padding: 9px 12px;
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  cursor: pointer; font-family: 'Source Sans 3', sans-serif;
+  transition: all .15s; width: 100%; text-align: left;
+}
+.signout-btn:hover { color: var(--red); border-color: rgba(224,82,82,.3); background: var(--red-soft); }
+
+/* ── MAIN ── */
+.main { flex: 1; padding: 36px 40px; overflow-y: auto; max-width: 760px; }
+
+/* ── PAGE HEADER ── */
+.page-header { margin-bottom: 32px; }
+.page-eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--terra); margin-bottom: 6px; }
+.page-title { font-family: 'Lora', serif; font-size: 26px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.page-sub { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+/* ── LOADING ── */
+.loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 16px; }
+.spinner { width: 32px; height: 32px; border: 3px solid var(--border2); border-top-color: var(--terra); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── CHANNEL CARD ── */
+.channel-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.channel-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.channel-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.channel-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.icon-wa   { background: rgba(37,211,102,.15); }
+.icon-ig   { background: rgba(131,58,180,.15); }
+.icon-fb   { background: rgba(91,156,246,.12); }
+.icon-sms  { background: var(--terra-soft); }
+
+.channel-name { font-size: 15px; font-weight: 700; color: var(--text); }
+.channel-sub  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.pill-connected    { background: var(--green-soft); color: var(--green); border: 1px solid rgba(61,190,122,.2); }
+.pill-disconnected { background: var(--surface2); color: var(--muted); border: 1px solid var(--border2); }
+
+.channel-body { padding: 20px; }
+
+.fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.field-full { grid-column: 1 / -1; }
+
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mid);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.form-group input {
+  padding: 10px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'DM Mono', monospace;
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  width: 100%;
+}
+
+.form-group input:focus {
+  border-color: var(--terra);
+  box-shadow: 0 0 0 3px var(--terra-dim);
+}
+
+.form-group input::placeholder { color: var(--muted); font-family: 'Source Sans 3', sans-serif; }
+
+.channel-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.btn-save {
+  padding: 9px 20px;
+  background: var(--terra);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Source Sans 3', sans-serif;
+  cursor: pointer;
+  transition: background .15s, opacity .15s;
+}
+.btn-save:hover { background: #C4613A; }
+.btn-save:disabled { opacity: .6; cursor: not-allowed; }
+
+.btn-disconnect {
+  padding: 9px 16px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Source Sans 3', sans-serif;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn-disconnect:hover { color: var(--red); border-color: rgba(224,82,82,.3); background: var(--red-soft); }
+
+.save-feedback {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 6px;
+  display: none;
+}
+.save-feedback.ok  { display: inline-block; color: var(--green); background: var(--green-soft); }
+.save-feedback.err { display: inline-block; color: var(--red); background: var(--red-soft); }
+
+/* ── GUIDE SECTION ── */
+.guide-section {
+  margin-top: 36px;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.guide-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.guide-item {
+  display: flex;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.guide-item:last-child { border-bottom: none; }
+
+.guide-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.guide-body { flex: 1; }
+.guide-item-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.guide-item-sub { font-size: 12px; color: var(--muted); line-height: 1.6; }
+.guide-item-sub a { color: var(--terra); text-decoration: none; }
+.guide-item-sub a:hover { text-decoration: underline; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .fields-grid { grid-template-columns: 1fr; }
+  .main { padding: 24px 16px; }
+  .sidebar { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">G</div>
+    <div class="logo-text">Guest<span>.</span>Manager</div>
+  </div>
+  <div class="sidebar-biz">
+    <div class="biz-name" id="bizName">Loading...</div>
+    <div class="biz-plan" id="bizPlan"></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Messaging</div>
+    <a class="nav-item" href="/dashboard.html"><span class="nav-icon">💬</span> Inbox</a>
+    <a class="nav-item" href="/billing.html"><span class="nav-icon">📊</span> Usage & Billing</a>
+    <div class="nav-label" style="margin-top:8px">Settings</div>
+    <a class="nav-item active" href="/settings.html"><span class="nav-icon">🔗</span> Channel Settings</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="signout-btn" onclick="GM.signOut()">
+      <span>↩</span> Sign out
+    </button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="loading-screen" id="loadingScreen">
+    <div class="spinner"></div>
+    <div style="font-size:13px;color:var(--muted)">Loading settings...</div>
+  </div>
+
+  <div id="pageContent" style="display:none">
+    <div class="page-header">
+      <div class="page-eyebrow">Configuration</div>
+      <h1 class="page-title">Channel Settings</h1>
+      <p class="page-sub">Connect your messaging channels so your AI can send and receive messages. Credentials are stored securely and never shared.</p>
+    </div>
+
+    <!-- WHATSAPP -->
+    <div class="channel-card" id="card-whatsapp">
+      <div class="channel-header">
+        <div class="channel-title-row">
+          <div class="channel-icon icon-wa">📱</div>
+          <div>
+            <div class="channel-name">WhatsApp</div>
+            <div class="channel-sub">Meta WhatsApp Business API</div>
+          </div>
+        </div>
+        <span class="status-pill pill-disconnected" id="pill-whatsapp">Not connected</span>
+      </div>
+      <div class="channel-body">
+        <div class="fields-grid">
+          <div class="form-group">
+            <label>Phone Number ID</label>
+            <input type="text" id="wa-phoneNumberId" placeholder="1234567890123"/>
+          </div>
+          <div class="form-group">
+            <label>Business Account ID</label>
+            <input type="text" id="wa-businessAccountId" placeholder="9876543210987"/>
+          </div>
+          <div class="form-group field-full">
+            <label>Permanent Access Token</label>
+            <input type="password" id="wa-accessToken" placeholder="EAAxxxxx..."/>
+          </div>
+          <div class="form-group">
+            <label>Display Number (optional)</label>
+            <input type="tel" id="wa-displayNumber" placeholder="+49 30 1234567"/>
+          </div>
+        </div>
+        <div class="channel-actions">
+          <button class="btn-save" onclick="saveChannel('whatsapp')">Save WhatsApp</button>
+          <button class="btn-disconnect" id="disc-whatsapp" onclick="disconnectChannel('whatsapp')" style="display:none">Disconnect</button>
+          <span class="save-feedback" id="fb-whatsapp"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- INSTAGRAM -->
+    <div class="channel-card" id="card-instagram">
+      <div class="channel-header">
+        <div class="channel-title-row">
+          <div class="channel-icon icon-ig">📸</div>
+          <div>
+            <div class="channel-name">Instagram</div>
+            <div class="channel-sub">Instagram DMs via Meta Graph API</div>
+          </div>
+        </div>
+        <span class="status-pill pill-disconnected" id="pill-instagram">Not connected</span>
+      </div>
+      <div class="channel-body">
+        <div class="fields-grid">
+          <div class="form-group">
+            <label>Instagram Page ID</label>
+            <input type="text" id="ig-pageId" placeholder="1234567890"/>
+          </div>
+          <div class="form-group">
+            <label>Instagram Username (optional)</label>
+            <input type="text" id="ig-username" placeholder="@yoursalon"/>
+          </div>
+          <div class="form-group field-full">
+            <label>Page Access Token</label>
+            <input type="password" id="ig-accessToken" placeholder="EAAxxxxx..."/>
+          </div>
+        </div>
+        <div class="channel-actions">
+          <button class="btn-save" onclick="saveChannel('instagram')">Save Instagram</button>
+          <button class="btn-disconnect" id="disc-instagram" onclick="disconnectChannel('instagram')" style="display:none">Disconnect</button>
+          <span class="save-feedback" id="fb-instagram"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- FACEBOOK -->
+    <div class="channel-card" id="card-facebook">
+      <div class="channel-header">
+        <div class="channel-title-row">
+          <div class="channel-icon icon-fb">📘</div>
+          <div>
+            <div class="channel-name">Facebook</div>
+            <div class="channel-sub">Facebook Messenger via Meta Graph API</div>
+          </div>
+        </div>
+        <span class="status-pill pill-disconnected" id="pill-facebook">Not connected</span>
+      </div>
+      <div class="channel-body">
+        <div class="fields-grid">
+          <div class="form-group">
+            <label>Facebook Page ID</label>
+            <input type="text" id="fb-pageId" placeholder="1234567890"/>
+          </div>
+          <div class="form-group">
+            <label>Page Name (optional)</label>
+            <input type="text" id="fb-pageName" placeholder="Studio Bloom Berlin"/>
+          </div>
+          <div class="form-group field-full">
+            <label>Page Access Token</label>
+            <input type="password" id="fb-accessToken" placeholder="EAAxxxxx..."/>
+          </div>
+        </div>
+        <div class="channel-actions">
+          <button class="btn-save" onclick="saveChannel('facebook')">Save Facebook</button>
+          <button class="btn-disconnect" id="disc-facebook" onclick="disconnectChannel('facebook')" style="display:none">Disconnect</button>
+          <span class="save-feedback" id="fb-facebook"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SMS / TWILIO -->
+    <div class="channel-card" id="card-sms">
+      <div class="channel-header">
+        <div class="channel-title-row">
+          <div class="channel-icon icon-sms">💬</div>
+          <div>
+            <div class="channel-name">SMS</div>
+            <div class="channel-sub">Twilio SMS</div>
+          </div>
+        </div>
+        <span class="status-pill pill-disconnected" id="pill-sms">Not connected</span>
+      </div>
+      <div class="channel-body">
+        <div class="fields-grid">
+          <div class="form-group">
+            <label>Twilio Account SID</label>
+            <input type="text" id="sms-accountSid" placeholder="ACxxxxxxxxxxxxxxxx"/>
+          </div>
+          <div class="form-group">
+            <label>Twilio Auth Token</label>
+            <input type="password" id="sms-authToken" placeholder="Your auth token"/>
+          </div>
+          <div class="form-group field-full">
+            <label>Your Twilio Phone Number (E.164)</label>
+            <input type="tel" id="sms-phoneNumber" placeholder="+49301234567"/>
+          </div>
+        </div>
+        <div class="channel-actions">
+          <button class="btn-save" onclick="saveChannel('sms')">Save SMS</button>
+          <button class="btn-disconnect" id="disc-sms" onclick="disconnectChannel('sms')" style="display:none">Disconnect</button>
+          <span class="save-feedback" id="fb-sms"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- GUIDE -->
+    <div class="guide-section">
+      <div class="guide-title">Where to find your credentials</div>
+
+      <div class="guide-item">
+        <div class="guide-icon">📱</div>
+        <div class="guide-body">
+          <div class="guide-item-title">WhatsApp — Phone Number ID & Business Account ID</div>
+          <div class="guide-item-sub">Go to <a href="https://business.facebook.com" target="_blank">Meta Business Suite</a> → WhatsApp → API Setup. You'll find the Phone Number ID and WABA ID on that page. Create a System User token with whatsapp_business_messaging and whatsapp_business_management permissions — this becomes your Permanent Access Token.</div>
+        </div>
+      </div>
+
+      <div class="guide-item">
+        <div class="guide-icon">📸</div>
+        <div class="guide-body">
+          <div class="guide-item-title">Instagram — Page ID & Access Token</div>
+          <div class="guide-item-sub">Go to <a href="https://developers.facebook.com" target="_blank">Meta for Developers</a> → your app → Instagram → Instagram Basic Display or Instagram Graph API. The Page ID is your connected Facebook Page ID. Generate a Page Access Token via the Graph API Explorer with the instagram_manage_messages permission.</div>
+        </div>
+      </div>
+
+      <div class="guide-item">
+        <div class="guide-icon">📘</div>
+        <div class="guide-body">
+          <div class="guide-item-title">Facebook — Page ID & Access Token</div>
+          <div class="guide-item-sub">Go to <a href="https://developers.facebook.com" target="_blank">Meta for Developers</a> → your app → Messenger → Access Tokens. Select your Page to generate a Page Access Token. The Page ID is visible in your Facebook Page's About section → Page ID.</div>
+        </div>
+      </div>
+
+      <div class="guide-item">
+        <div class="guide-icon">💬</div>
+        <div class="guide-body">
+          <div class="guide-item-title">SMS — Twilio Account SID & Auth Token</div>
+          <div class="guide-item-sub">Go to <a href="https://console.twilio.com" target="_blank">Twilio Console</a> → Dashboard. Your Account SID and Auth Token are shown at the top. Buy or port a phone number from Twilio → Phone Numbers, and enter it in E.164 format (e.g. +49301234567).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/api/config.js"></script>
+<script src="/auth.js"></script>
+<script>
+(async function() {
+  const session = await GM.requireSession();
+  if (!session) return;
+
+  // Load business info for sidebar
+  try {
+    const meRes = await GM.authFetch('/api/me');
+    if (meRes && meRes.ok) {
+      const data = await meRes.json();
+      if (data.business) {
+        document.getElementById('bizName').textContent = data.business.name || 'Your Business';
+        document.getElementById('bizPlan').textContent = data.business.plan_id ? capitalise(data.business.plan_id) + ' Plan' : '';
+      }
+    }
+  } catch (e) { /* non-critical */ }
+
+  function capitalise(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+  // Channel field map
+  const CHANNELS = {
+    whatsapp: {
+      fields: ['phoneNumberId', 'businessAccountId', 'accessToken', 'displayNumber'],
+      prefix: 'wa',
+      payload: (p) => ({ phoneNumberId: p.wa_phoneNumberId, businessAccountId: p.wa_businessAccountId, accessToken: p.wa_accessToken, displayNumber: p.wa_displayNumber }),
+    },
+    instagram: {
+      fields: ['pageId', 'accessToken', 'username'],
+      prefix: 'ig',
+      payload: (p) => ({ pageId: p.ig_pageId, accessToken: p.ig_accessToken, username: p.ig_username }),
+    },
+    facebook: {
+      fields: ['pageId', 'accessToken', 'pageName'],
+      prefix: 'fb',
+      payload: (p) => ({ pageId: p.fb_pageId, accessToken: p.fb_accessToken, pageName: p.fb_pageName }),
+    },
+    sms: {
+      fields: ['accountSid', 'authToken', 'phoneNumber'],
+      prefix: 'sms',
+      payload: (p) => ({ accountSid: p.sms_accountSid, authToken: p.sms_authToken, phoneNumber: p.sms_phoneNumber }),
+    },
+  };
+
+  function getFieldValues(channel) {
+    const { fields, prefix } = CHANNELS[channel];
+    const vals = {};
+    fields.forEach(f => {
+      const el = document.getElementById(`${prefix}-${f}`);
+      if (el) vals[`${prefix}_${f}`] = el.value.trim();
+    });
+    return vals;
+  }
+
+  function showFeedback(channel, type, msg) {
+    const el = document.getElementById(`fb-${channel}`);
+    el.textContent = msg;
+    el.className = 'save-feedback ' + type;
+    setTimeout(() => { el.className = 'save-feedback'; }, 3500);
+  }
+
+  function setConnectedState(channel, isConnected, info) {
+    const pill = document.getElementById(`pill-${channel}`);
+    const discBtn = document.getElementById(`disc-${channel}`);
+    if (isConnected) {
+      pill.textContent = 'Connected';
+      pill.className = 'status-pill pill-connected';
+      discBtn.style.display = 'inline-flex';
+
+      // Show identifying info in channel sub if available
+      const subEl = document.querySelector(`#card-${channel} .channel-sub`);
+      if (subEl && info) subEl.textContent = info;
+    } else {
+      pill.textContent = 'Not connected';
+      pill.className = 'status-pill pill-disconnected';
+      discBtn.style.display = 'none';
+    }
+  }
+
+  function populateFields(channel, creds) {
+    const { fields, prefix } = CHANNELS[channel];
+    fields.forEach(f => {
+      const el = document.getElementById(`${prefix}-${f}`);
+      if (el && creds[f] !== undefined) el.value = creds[f] || '';
+    });
+  }
+
+  // Load existing credentials
+  async function loadCredentials() {
+    try {
+      const res = await GM.authFetch('/api/credentials');
+      if (!res || !res.ok) return;
+      const data = await res.json();
+      const creds = data.credentials || {};
+
+      Object.keys(CHANNELS).forEach(ch => {
+        if (creds[ch]) {
+          setConnectedState(ch, true, getChannelInfo(ch, creds[ch]));
+          populateFields(ch, creds[ch]);
+        }
+      });
+    } catch (e) {
+      // Non-critical — form stays blank
+    }
+
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('pageContent').style.display = 'block';
+  }
+
+  function getChannelInfo(channel, creds) {
+    if (channel === 'whatsapp') return creds.displayNumber || 'WhatsApp Business API';
+    if (channel === 'instagram') return creds.username ? '@' + creds.username.replace(/^@/, '') : 'Instagram connected';
+    if (channel === 'facebook') return creds.pageName || 'Facebook Page connected';
+    if (channel === 'sms') return creds.phoneNumber || 'Twilio SMS connected';
+    return '';
+  }
+
+  window.saveChannel = async function(channel) {
+    const vals = getFieldValues(channel);
+    const payload = CHANNELS[channel].payload(vals);
+
+    const btn = document.querySelector(`#card-${channel} .btn-save`);
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    try {
+      const res = await GM.authFetch(`/api/credentials/${channel}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+
+      if (!res) { btn.disabled = false; btn.textContent = 'Save ' + capitalise(channel); return; }
+
+      if (res.ok) {
+        setConnectedState(channel, true, getChannelInfo(channel, payload));
+        showFeedback(channel, 'ok', 'Saved');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showFeedback(channel, 'err', err.error || 'Save failed');
+      }
+    } catch (e) {
+      showFeedback(channel, 'err', 'Network error');
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Save ' + capitalise(channel);
+  };
+
+  window.disconnectChannel = async function(channel) {
+    if (!confirm(`Disconnect ${capitalise(channel)}? This will stop message handling on this channel.`)) return;
+
+    const btn = document.getElementById(`disc-${channel}`);
+    btn.disabled = true;
+    btn.textContent = 'Disconnecting...';
+
+    try {
+      const res = await GM.authFetch(`/api/credentials/${channel}`, { method: 'DELETE' });
+
+      if (!res) { btn.disabled = false; btn.textContent = 'Disconnect'; return; }
+
+      if (res.ok) {
+        setConnectedState(channel, false);
+        // Clear fields
+        const { fields, prefix } = CHANNELS[channel];
+        fields.forEach(f => {
+          const el = document.getElementById(`${prefix}-${f}`);
+          if (el) el.value = '';
+        });
+        showFeedback(channel, 'ok', 'Disconnected');
+      } else {
+        showFeedback(channel, 'err', 'Disconnect failed');
+        btn.disabled = false;
+        btn.textContent = 'Disconnect';
+      }
+    } catch (e) {
+      showFeedback(channel, 'err', 'Network error');
+      btn.disabled = false;
+      btn.textContent = 'Disconnect';
+    }
+  };
+
+  loadCredentials();
+})();
+</script>
+</body>
+</html>
