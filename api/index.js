@@ -420,6 +420,104 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // ── META OAUTH: INITIATE ─────────────────────────────────
+    if (path === '/api/auth/meta' && req.method === 'GET') {
+      const token   = query.token;
+      const channel = query.channel || 'instagram';
+      if (!token) return res.status(400).json({ error: 'token required' });
+
+      const { data: { user }, error: authErr } = await store.supabase.auth.getUser(token);
+      if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
+      const { data: biz } = await store.supabase.from('businesses').select('id').eq('user_id', user.id).single();
+      if (!biz) return res.status(403).json({ error: 'No business' });
+
+      const state = Buffer.from(JSON.stringify({ businessId: biz.id, channel })).toString('base64url');
+      const scopes = channel === 'facebook'
+        ? 'pages_messaging,pages_show_list,pages_read_engagement,pages_manage_metadata'
+        : 'instagram_manage_messages,instagram_basic,pages_show_list,pages_messaging,pages_read_engagement';
+
+      const oauthUrl = new URL('https://www.facebook.com/dialog/oauth');
+      oauthUrl.searchParams.set('client_id',    process.env.FACEBOOK_APP_ID);
+      oauthUrl.searchParams.set('redirect_uri', 'https://guestmanager.co/api/auth/meta/callback');
+      oauthUrl.searchParams.set('scope',        scopes);
+      oauthUrl.searchParams.set('state',        state);
+      oauthUrl.searchParams.set('response_type','code');
+
+      res.setHeader('Location', oauthUrl.toString());
+      return res.status(302).end();
+    }
+
+    // ── META OAUTH: CALLBACK ─────────────────────────────────
+    if (path === '/api/auth/meta/callback' && req.method === 'GET') {
+      if (query.error) {
+        res.setHeader('Location', '/settings.html?error=access_denied');
+        return res.status(302).end();
+      }
+
+      const { code, state } = query;
+      if (!code || !state) return res.status(400).json({ error: 'Missing code or state' });
+
+      let businessId, channel;
+      try {
+        const decoded = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
+        businessId = decoded.businessId;
+        channel    = decoded.channel;
+      } catch {
+        return res.status(400).json({ error: 'Invalid state' });
+      }
+
+      const appId     = process.env.FACEBOOK_APP_ID;
+      const appSecret = process.env.FACEBOOK_APP_SECRET;
+      const redirect  = 'https://guestmanager.co/api/auth/meta/callback';
+
+      // Exchange code → short-lived token
+      const tokenRes  = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&redirect_uri=${encodeURIComponent(redirect)}&code=${code}`);
+      const tokenData = await tokenRes.json();
+      if (!tokenData.access_token) {
+        console.error('[Meta OAuth] Token exchange failed:', tokenData);
+        res.setHeader('Location', '/settings.html?error=token_exchange');
+        return res.status(302).end();
+      }
+
+      // Exchange → long-lived token (60 days)
+      const longRes  = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${tokenData.access_token}`);
+      const longData = await longRes.json();
+      const userToken = longData.access_token || tokenData.access_token;
+
+      // Fetch pages + connected Instagram accounts
+      const pagesRes  = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,username}&access_token=${userToken}`);
+      const pagesData = await pagesRes.json();
+      const pages     = pagesData.data || [];
+
+      if (channel === 'instagram') {
+        const page = pages.find(p => p.instagram_business_account);
+        if (!page) {
+          res.setHeader('Location', '/settings.html?error=no_instagram');
+          return res.status(302).end();
+        }
+        await saveCredentials(businessId, 'instagram', {
+          pageId:      page.instagram_business_account.id,
+          accessToken: page.access_token,
+          username:    page.instagram_business_account.username || '',
+        });
+      } else if (channel === 'facebook') {
+        const page = pages[0];
+        if (!page) {
+          res.setHeader('Location', '/settings.html?error=no_pages');
+          return res.status(302).end();
+        }
+        await saveCredentials(businessId, 'facebook', {
+          pageId:      page.id,
+          accessToken: page.access_token,
+          pageName:    page.name,
+        });
+      }
+
+      res.setHeader('Location', `/settings.html?connected=${channel}`);
+      return res.status(302).end();
+    }
+
     // ── 404 ─────────────────────────────────────────────────
     return res.status(404).json({ error: 'Route not found', path });
 

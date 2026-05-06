@@ -365,26 +365,16 @@ body {
         </div>
         <span class="status-pill pill-disconnected" id="pill-instagram">Not connected</span>
       </div>
-      <div class="channel-body">
-        <div class="fields-grid">
-          <div class="form-group">
-            <label>Instagram Page ID</label>
-            <input type="text" id="ig-pageId" placeholder="1234567890"/>
-          </div>
-          <div class="form-group">
-            <label>Instagram Username (optional)</label>
-            <input type="text" id="ig-username" placeholder="@yoursalon"/>
-          </div>
-          <div class="form-group field-full">
-            <label>Page Access Token</label>
-            <input type="password" id="ig-accessToken" placeholder="EAAxxxxx..."/>
-          </div>
-        </div>
+      <div class="channel-body" id="body-instagram">
+        <p style="font-size:13px;color:var(--mid);margin-bottom:16px;">Connect your Instagram Business account. You'll be redirected to Facebook to approve access — no credentials to copy.</p>
         <div class="channel-actions">
-          <button class="btn-save" onclick="saveChannel('instagram')">Save Instagram</button>
+          <button class="btn-save" id="btn-connect-instagram" onclick="connectMeta('instagram')" style="display:flex;align-items:center;gap:8px;">
+            <span>Connect with Facebook</span>
+          </button>
           <button class="btn-disconnect" id="disc-instagram" onclick="disconnectChannel('instagram')" style="display:none">Disconnect</button>
           <span class="save-feedback" id="fb-instagram"></span>
         </div>
+        <div id="ig-connected-info" style="display:none;margin-top:12px;font-size:12px;color:var(--mid);"></div>
       </div>
     </div>
 
@@ -400,26 +390,16 @@ body {
         </div>
         <span class="status-pill pill-disconnected" id="pill-facebook">Not connected</span>
       </div>
-      <div class="channel-body">
-        <div class="fields-grid">
-          <div class="form-group">
-            <label>Facebook Page ID</label>
-            <input type="text" id="fb-pageId" placeholder="1234567890"/>
-          </div>
-          <div class="form-group">
-            <label>Page Name (optional)</label>
-            <input type="text" id="fb-pageName" placeholder="Studio Bloom Berlin"/>
-          </div>
-          <div class="form-group field-full">
-            <label>Page Access Token</label>
-            <input type="password" id="fb-accessToken" placeholder="EAAxxxxx..."/>
-          </div>
-        </div>
+      <div class="channel-body" id="body-facebook">
+        <p style="font-size:13px;color:var(--mid);margin-bottom:16px;">Connect your Facebook Page to receive and reply to Messenger messages automatically.</p>
         <div class="channel-actions">
-          <button class="btn-save" onclick="saveChannel('facebook')">Save Facebook</button>
+          <button class="btn-save" id="btn-connect-facebook" onclick="connectMeta('facebook')" style="display:flex;align-items:center;gap:8px;">
+            <span>Connect with Facebook</span>
+          </button>
           <button class="btn-disconnect" id="disc-facebook" onclick="disconnectChannel('facebook')" style="display:none">Disconnect</button>
           <span class="save-feedback" id="fb-facebook"></span>
         </div>
+        <div id="fb-connected-info" style="display:none;margin-top:12px;font-size:12px;color:var(--mid);"></div>
       </div>
     </div>
 
@@ -586,27 +566,6 @@ body {
     });
   }
 
-  // Load existing credentials
-  async function loadCredentials() {
-    try {
-      const res = await GM.authFetch('/api/credentials');
-      if (!res || !res.ok) return;
-      const data = await res.json();
-      const creds = data.credentials || {};
-
-      Object.keys(CHANNELS).forEach(ch => {
-        if (creds[ch]) {
-          setConnectedState(ch, true, getChannelInfo(ch, creds[ch]));
-          populateFields(ch, creds[ch]);
-        }
-      });
-    } catch (e) {
-      // Non-critical — form stays blank
-    }
-
-    document.getElementById('loadingScreen').style.display = 'none';
-    document.getElementById('pageContent').style.display = 'block';
-  }
 
   function getChannelInfo(channel, creds) {
     if (channel === 'whatsapp') return creds.displayNumber || 'WhatsApp Business API';
@@ -678,6 +637,58 @@ body {
       btn.disabled = false;
       btn.textContent = 'Disconnect';
     }
+  };
+
+  // Fix loadCredentials to use data.channels not data.credentials
+  async function loadCredentials() {
+    try {
+      const res = await GM.authFetch('/api/credentials');
+      if (!res || !res.ok) return;
+      const data = await res.json();
+      const channels = data.channels || {};
+
+      Object.keys(channels).forEach(ch => {
+        if (channels[ch] && channels[ch].connected) {
+          setConnectedState(ch, true, getChannelInfo(ch, channels[ch]));
+          // Show connected info for OAuth channels
+          const infoEl = document.getElementById(`${ch === 'instagram' ? 'ig' : 'fb'}-connected-info`);
+          if (infoEl && (ch === 'instagram' || ch === 'facebook')) {
+            infoEl.textContent = getChannelInfo(ch, channels[ch]);
+            infoEl.style.display = 'block';
+            const connectBtn = document.getElementById(`btn-connect-${ch}`);
+            if (connectBtn) connectBtn.style.display = 'none';
+          }
+        }
+      });
+    } catch (e) { /* non-critical */ }
+
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('pageContent').style.display = 'block';
+
+    // Handle OAuth callback result params
+    const params = new URLSearchParams(window.location.search);
+    const connected = params.get('connected');
+    const error = params.get('error');
+
+    if (connected) {
+      showFeedback(connected, 'ok', 'Connected successfully!');
+      // Reload to show updated status
+      setTimeout(() => window.history.replaceState({}, '', '/settings.html'), 100);
+    }
+    if (error === 'no_instagram') showFeedback('instagram', 'err', 'No Instagram Business account found on your Facebook pages.');
+    if (error === 'no_pages')    showFeedback('facebook',  'err', 'No Facebook Pages found on your account.');
+    if (error === 'access_denied') {
+      showFeedback('instagram', 'err', 'Access denied — please try again.');
+      showFeedback('facebook',  'err', 'Access denied — please try again.');
+    }
+  }
+
+  window.connectMeta = async function(channel) {
+    const { data: { session } } = await GM.sb.auth.getSession();
+    if (!session) { window.location.href = '/login.html'; return; }
+    const btn = document.getElementById(`btn-connect-${channel}`);
+    if (btn) { btn.disabled = true; btn.querySelector('span').textContent = 'Redirecting...'; }
+    window.location.href = `/api/auth/meta?channel=${channel}&token=${session.access_token}`;
   };
 
   loadCredentials();
