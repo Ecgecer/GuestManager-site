@@ -71,8 +71,10 @@ module.exports = async function handler(req, res) {
     res.setHeader('Cache-Control', 'public, max-age=300');
     return res.status(200).send(
       `window.GM_CONFIG = ${JSON.stringify({
-        supabaseUrl:    process.env.SUPABASE_URL,
-        supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+        supabaseUrl:      process.env.SUPABASE_URL,
+        supabaseAnonKey:  process.env.SUPABASE_ANON_KEY,
+        facebookAppId:    process.env.FACEBOOK_APP_ID,
+        whatsappConfigId: process.env.WHATSAPP_CONFIG_ID,
       })};`
     );
   }
@@ -545,6 +547,49 @@ module.exports = async function handler(req, res) {
 
       res.setHeader('Location', `/settings.html?connected=${channel}`);
       return res.status(302).end();
+    }
+
+    // ── WHATSAPP EMBEDDED SIGNUP: TOKEN EXCHANGE ─────────────
+    if (path === '/api/auth/whatsapp' && req.method === 'POST') {
+      const { businessId } = await requireAuth(req);
+      const { code, phoneNumberId, wabaId } = req.body || {};
+      if (!code || !phoneNumberId || !wabaId) {
+        return res.status(400).json({ error: 'code, phoneNumberId, wabaId required' });
+      }
+
+      const appId     = process.env.FACEBOOK_APP_ID;
+      const appSecret = process.env.FACEBOOK_APP_SECRET;
+
+      // Exchange code for short-lived user access token
+      // Embedded Signup code exchange uses empty redirect_uri
+      const tokenRes  = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&redirect_uri=&code=${code}`);
+      const tokenData = await tokenRes.json();
+      if (!tokenData.access_token) {
+        console.error('[WA OAuth] Token exchange failed:', tokenData);
+        return res.status(400).json({ error: 'Token exchange failed', detail: tokenData.error?.message });
+      }
+
+      // Upgrade to long-lived token (60 days)
+      const longRes  = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${tokenData.access_token}`);
+      const longData = await longRes.json();
+      const accessToken = longData.access_token || tokenData.access_token;
+
+      // Get phone number display info
+      let displayNumber = '';
+      try {
+        const phoneRes  = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}?fields=display_phone_number,verified_name&access_token=${accessToken}`);
+        const phoneData = await phoneRes.json();
+        displayNumber = phoneData.display_phone_number || '';
+      } catch (e) { /* non-fatal */ }
+
+      await saveCredentials(businessId, 'whatsapp', {
+        phoneNumberId,
+        businessAccountId: wabaId,
+        accessToken,
+        displayNumber,
+      });
+
+      return res.status(200).json({ success: true, displayNumber, phoneNumberId, wabaId });
     }
 
     // ── 404 ─────────────────────────────────────────────────

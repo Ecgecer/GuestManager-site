@@ -321,34 +321,54 @@ body {
           <div class="channel-icon icon-wa">📱</div>
           <div>
             <div class="channel-name">WhatsApp</div>
-            <div class="channel-sub">Meta WhatsApp Business API</div>
+            <div class="channel-sub" id="wa-sub">Meta WhatsApp Business API</div>
           </div>
         </div>
         <span class="status-pill pill-disconnected" id="pill-whatsapp">Not connected</span>
       </div>
       <div class="channel-body">
-        <div class="fields-grid">
-          <div class="form-group">
-            <label>Phone Number ID</label>
-            <input type="text" id="wa-phoneNumberId" placeholder="1234567890123"/>
+        <!-- Embedded Signup (primary) -->
+        <div id="wa-signup-section">
+          <p style="font-size:13px;color:var(--mid);margin-bottom:16px;">Connect your WhatsApp Business account in one click. You'll log in with Facebook and select your number — no manual credential copying needed.</p>
+          <div class="channel-actions">
+            <button class="btn-save" id="btn-connect-whatsapp" onclick="connectWhatsApp()" style="display:flex;align-items:center;gap:8px;">
+              <span>Connect WhatsApp</span>
+            </button>
+            <button class="btn-disconnect" id="disc-whatsapp" onclick="disconnectChannel('whatsapp')" style="display:none">Disconnect</button>
+            <span class="save-feedback" id="fb-whatsapp"></span>
           </div>
-          <div class="form-group">
-            <label>Business Account ID</label>
-            <input type="text" id="wa-businessAccountId" placeholder="9876543210987"/>
-          </div>
-          <div class="form-group field-full">
-            <label>Permanent Access Token</label>
-            <input type="password" id="wa-accessToken" placeholder="EAAxxxxx..."/>
-          </div>
-          <div class="form-group">
-            <label>Display Number (optional)</label>
-            <input type="tel" id="wa-displayNumber" placeholder="+49 30 1234567"/>
+          <div id="wa-connected-info" style="display:none;margin-top:12px;font-size:12px;color:var(--mid);"></div>
+          <div style="margin-top:16px;">
+            <button onclick="toggleWaAdvanced()" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:0;font-family:'Source Sans 3',sans-serif;">
+              Advanced: enter credentials manually ▾
+            </button>
           </div>
         </div>
-        <div class="channel-actions">
-          <button class="btn-save" onclick="saveChannel('whatsapp')">Save WhatsApp</button>
-          <button class="btn-disconnect" id="disc-whatsapp" onclick="disconnectChannel('whatsapp')" style="display:none">Disconnect</button>
-          <span class="save-feedback" id="fb-whatsapp"></span>
+
+        <!-- Manual fallback (advanced, hidden by default) -->
+        <div id="wa-advanced-section" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+          <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Use this if you have a permanent System User token from Meta Business Manager.</p>
+          <div class="fields-grid">
+            <div class="form-group">
+              <label>Phone Number ID</label>
+              <input type="text" id="wa-phoneNumberId" placeholder="1234567890123"/>
+            </div>
+            <div class="form-group">
+              <label>Business Account ID</label>
+              <input type="text" id="wa-businessAccountId" placeholder="9876543210987"/>
+            </div>
+            <div class="form-group field-full">
+              <label>Permanent Access Token</label>
+              <input type="password" id="wa-accessToken" placeholder="EAAxxxxx..."/>
+            </div>
+            <div class="form-group">
+              <label>Display Number (optional)</label>
+              <input type="tel" id="wa-displayNumber" placeholder="+49 30 1234567"/>
+            </div>
+          </div>
+          <div class="channel-actions">
+            <button class="btn-save" onclick="saveChannel('whatsapp')">Save WhatsApp</button>
+          </div>
         </div>
       </div>
     </div>
@@ -481,6 +501,104 @@ body {
 <script src="/api/config.js"></script>
 <script src="/auth.js"></script>
 <script>
+// Facebook JS SDK for WhatsApp Embedded Signup
+window.fbAsyncInit = function() {
+  const appId = window.GM_CONFIG && window.GM_CONFIG.facebookAppId;
+  if (!appId) return;
+  FB.init({ appId, cookie: true, xfbml: true, version: 'v19.0' });
+};
+(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = 'https://connect.facebook.net/en_US/sdk.js';
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));
+
+// Capture WABA data from the embedded signup iframe message
+window._waSignupData = {};
+window.addEventListener('message', function(event) {
+  if (event.origin !== 'https://www.facebook.com') return;
+  try {
+    const data = JSON.parse(event.data);
+    if (data.type === 'WA_EMBEDDED_SIGNUP') {
+      if (data.event === 'FINISH') {
+        window._waSignupData = {
+          phoneNumberId: data.data.phone_number_id,
+          wabaId:        data.data.waba_id,
+        };
+      } else if (data.event === 'CANCEL') {
+        console.log('[WA Signup] Cancelled at step:', data.data?.current_step);
+      } else if (data.event === 'ERROR') {
+        console.error('[WA Signup] Error:', data.data);
+      }
+    }
+  } catch (e) { /* not our message */ }
+});
+
+window.connectWhatsApp = function() {
+  const configId = window.GM_CONFIG && window.GM_CONFIG.whatsappConfigId;
+  if (!configId) {
+    alert('WhatsApp Embedded Signup not configured. Please contact support.');
+    return;
+  }
+  const btn = document.getElementById('btn-connect-whatsapp');
+  if (btn) { btn.disabled = true; btn.querySelector('span').textContent = 'Connecting...'; }
+
+  FB.login(async function(response) {
+    if (btn) { btn.disabled = false; btn.querySelector('span').textContent = 'Connect WhatsApp'; }
+
+    if (!response.authResponse || !response.authResponse.code) {
+      if (response.status === 'unknown') return; // user closed popup
+      showFeedback('whatsapp', 'err', 'Connection cancelled or failed');
+      return;
+    }
+
+    const { code } = response.authResponse;
+    const { phoneNumberId, wabaId } = window._waSignupData;
+
+    if (!phoneNumberId || !wabaId) {
+      showFeedback('whatsapp', 'err', 'No WhatsApp number selected — please try again');
+      return;
+    }
+
+    if (btn) { btn.disabled = true; btn.querySelector('span').textContent = 'Saving...'; }
+    try {
+      const res = await GM.authFetch('/api/auth/whatsapp', {
+        method: 'POST',
+        body: JSON.stringify({ code, phoneNumberId, wabaId }),
+      });
+      if (!res) { btn.disabled = false; btn.querySelector('span').textContent = 'Connect WhatsApp'; return; }
+      if (res.ok) {
+        const data = await res.json();
+        const info = data.displayNumber || phoneNumberId;
+        setConnectedState('whatsapp', true, info);
+        document.getElementById('wa-connected-info').textContent = info;
+        document.getElementById('wa-connected-info').style.display = 'block';
+        showFeedback('whatsapp', 'ok', 'WhatsApp connected!');
+        window._waSignupData = {};
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showFeedback('whatsapp', 'err', err.error || 'Connection failed');
+      }
+    } catch (e) {
+      showFeedback('whatsapp', 'err', 'Network error');
+    }
+    if (btn) { btn.disabled = false; btn.querySelector('span').textContent = 'Connect WhatsApp'; }
+  }, {
+    config_id: configId,
+    response_type: 'code',
+    override_default_response_type: true,
+    extras: { sessionInfoVersion: 2 },
+  });
+};
+
+window.toggleWaAdvanced = function() {
+  const el = document.getElementById('wa-advanced-section');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+</script>
+<script>
 (async function() {
   const session = await GM.requireSession();
   if (!session) return;
@@ -541,20 +659,37 @@ body {
   }
 
   function setConnectedState(channel, isConnected, info) {
-    const pill = document.getElementById(`pill-${channel}`);
+    const pill    = document.getElementById(`pill-${channel}`);
     const discBtn = document.getElementById(`disc-${channel}`);
     if (isConnected) {
       pill.textContent = 'Connected';
-      pill.className = 'status-pill pill-connected';
-      discBtn.style.display = 'inline-flex';
+      pill.className   = 'status-pill pill-connected';
+      if (discBtn) discBtn.style.display = 'inline-flex';
 
-      // Show identifying info in channel sub if available
-      const subEl = document.querySelector(`#card-${channel} .channel-sub`);
-      if (subEl && info) subEl.textContent = info;
+      // WhatsApp: hide the signup button, show connected info
+      if (channel === 'whatsapp') {
+        const connectBtn = document.getElementById('btn-connect-whatsapp');
+        if (connectBtn) connectBtn.style.display = 'none';
+        const infoEl = document.getElementById('wa-connected-info');
+        if (infoEl && info) { infoEl.textContent = info; infoEl.style.display = 'block'; }
+        const subEl = document.getElementById('wa-sub');
+        if (subEl && info) subEl.textContent = info;
+      } else {
+        const subEl = document.querySelector(`#card-${channel} .channel-sub`);
+        if (subEl && info) subEl.textContent = info;
+      }
     } else {
       pill.textContent = 'Not connected';
-      pill.className = 'status-pill pill-disconnected';
-      discBtn.style.display = 'none';
+      pill.className   = 'status-pill pill-disconnected';
+      if (discBtn) discBtn.style.display = 'none';
+
+      // WhatsApp: show signup button again
+      if (channel === 'whatsapp') {
+        const connectBtn = document.getElementById('btn-connect-whatsapp');
+        if (connectBtn) connectBtn.style.display = 'flex';
+        const infoEl = document.getElementById('wa-connected-info');
+        if (infoEl) infoEl.style.display = 'none';
+      }
     }
   }
 
@@ -650,14 +785,15 @@ body {
       Object.keys(channels).forEach(ch => {
         if (channels[ch] && channels[ch].connected) {
           setConnectedState(ch, true, getChannelInfo(ch, channels[ch]));
-          // Show connected info for OAuth channels
-          const infoEl = document.getElementById(`${ch === 'instagram' ? 'ig' : 'fb'}-connected-info`);
-          if (infoEl && (ch === 'instagram' || ch === 'facebook')) {
-            infoEl.textContent = getChannelInfo(ch, channels[ch]);
-            infoEl.style.display = 'block';
+          // OAuth channels: show connected info, hide connect button
+          if (ch === 'instagram' || ch === 'facebook') {
+            const prefix  = ch === 'instagram' ? 'ig' : 'fb';
+            const infoEl  = document.getElementById(`${prefix}-connected-info`);
+            if (infoEl) { infoEl.textContent = getChannelInfo(ch, channels[ch]); infoEl.style.display = 'block'; }
             const connectBtn = document.getElementById(`btn-connect-${ch}`);
             if (connectBtn) connectBtn.style.display = 'none';
           }
+          // WhatsApp connected info handled inside setConnectedState
         }
       });
     } catch (e) { /* non-critical */ }
