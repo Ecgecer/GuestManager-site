@@ -434,8 +434,8 @@ module.exports = async function handler(req, res) {
 
       const state = Buffer.from(JSON.stringify({ businessId: biz.id, channel })).toString('base64url');
       const scopes = channel === 'facebook'
-        ? 'pages_messaging,pages_show_list,pages_read_engagement,pages_manage_metadata'
-        : 'instagram_manage_messages,instagram_basic,pages_show_list,pages_messaging,pages_read_engagement';
+        ? 'pages_messaging,pages_show_list,pages_read_engagement'
+        : 'instagram_business_basic,instagram_business_manage_messages,instagram_manage_comments';
 
       const oauthUrl = new URL('https://www.facebook.com/dialog/oauth');
       oauthUrl.searchParams.set('client_id',    process.env.FACEBOOK_APP_ID);
