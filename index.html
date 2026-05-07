@@ -518,6 +518,10 @@ footer { border-top: 1px solid var(--border); padding: 48px 0 36px; }
   .steps-row { grid-template-columns: 1fr; }
   .step-cell { border-right: none; border-bottom: 1px solid var(--border); }
   .step-cell:last-child { border-bottom: none; }
+  .stats-row { grid-template-columns: repeat(2,1fr); }
+  .stat-block { border-bottom: 1px solid rgba(255,255,255,.08); }
+  .stat-block:nth-child(2n) { border-right: none; }
+  .ch-grid { grid-template-columns: repeat(2,1fr); }
 }
 @media (max-width: 680px) {
   nav { padding: 0 20px; }
@@ -527,10 +531,73 @@ footer { border-top: 1px solid var(--border); padding: 48px 0 36px; }
   .who-grid { grid-template-columns: 1fr 1fr; }
   .cta-form { flex-direction: column; }
   .cta-block { padding: 48px 24px; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .ch-grid { grid-template-columns: 1fr; }
+  .stat-n { font-size: 38px; }
 }
 
 .success-msg { display: none; font-size: 13px; font-weight: 600; margin-top: 12px; }
 .success-msg.show { display: block; }
+
+/* ── TYPING INDICATOR ──────────────────────────────────────── */
+@keyframes tdot { 0%,60%,100%{transform:translateY(0);opacity:.35} 30%{transform:translateY(-5px);opacity:1} }
+.typing-bubble { display:inline-flex;align-items:center;gap:3px;background:var(--bg);border:1px solid var(--border);border-radius:2px 8px 8px 8px;padding:6px 10px; }
+.td { width:4px;height:4px;border-radius:50%;background:var(--muted);animation:tdot 1.3s ease-in-out infinite; }
+.td:nth-child(2){animation-delay:.18s}
+.td:nth-child(3){animation-delay:.36s}
+
+/* ── MSG APPEAR ──────────────────────────────────────────────── */
+@keyframes msgIn { from{opacity:0;transform:translateY(7px)} to{opacity:1;transform:translateY(0)} }
+.mock-msgs .mock-msg { animation:msgIn 380ms var(--ease-out) both; }
+.mock-msgs .mock-msg:nth-child(1){animation-delay:400ms}
+.mock-msgs .mock-msg:nth-child(2){animation-delay:1100ms}
+.mock-msgs .mock-msg:nth-child(3){animation-delay:1900ms}
+
+/* ── STATS STRIP ─────────────────────────────────────────────── */
+.stats-strip { background:var(--ink); padding:64px 0; }
+.stats-row { display:grid; grid-template-columns:repeat(4,1fr); }
+.stat-block { padding:24px 36px; text-align:center; border-right:1px solid rgba(255,255,255,.08); }
+.stat-block:last-child { border-right:none; }
+.stat-n { font-family:'Lora',serif; font-size:clamp(40px,4.2vw,62px); font-weight:700; color:var(--terra); letter-spacing:-2px; line-height:1; display:block; }
+.stat-l { font-size:10px; color:rgba(255,255,255,.32); font-weight:600; display:block; margin-top:10px; text-transform:uppercase; letter-spacing:.9px; }
+
+/* ── CHANNELS GRID ───────────────────────────────────────────── */
+.ch-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:60px; }
+.ch-card {
+  border-radius:14px; overflow:hidden;
+  border:1px solid var(--border); background:var(--surface);
+  transition:transform 260ms var(--ease-out), border-color 200ms, box-shadow 260ms;
+}
+.ch-card:hover { transform:translateY(-5px); border-color:rgba(196,97,58,.3); box-shadow:0 12px 40px rgba(42,39,36,.1); }
+.ch-head { padding:14px 16px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border); }
+.ch-icon { width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0; }
+.ch-nm { font-size:13px; font-weight:700; color:var(--ink); }
+.ch-hnd { font-size:11px; color:var(--muted); }
+.ch-msgs { padding:16px; display:flex; flex-direction:column; gap:8px; }
+.ch-bub {
+  background:var(--bg); border:1px solid var(--border);
+  border-radius:4px 10px 10px 10px; padding:9px 12px;
+  font-size:11px; color:var(--ink); line-height:1.55;
+  opacity:0; transform:translateX(-8px);
+  transition:opacity 360ms var(--ease-out), transform 360ms var(--ease-out);
+}
+.ch-bub.r {
+  background:var(--t-soft); border-color:rgba(196,97,58,.2);
+  border-radius:10px 4px 10px 10px; align-self:flex-end;
+  transform:translateX(8px);
+}
+.ch-card.animated .ch-bub { opacity:1; transform:translateX(0); }
+.ch-card.animated .ch-bub:nth-child(1) { transition-delay:80ms; }
+.ch-card.animated .ch-bub:nth-child(2) { transition-delay:560ms; }
+.ch-meta { font-size:9px; color:var(--muted); font-weight:600; padding-bottom:4px; opacity:0; transition:opacity 300ms 800ms; }
+.ch-card.animated .ch-meta { opacity:1; }
+
+/* ── SCAN ANIMATION (intent visual) ─────────────────────────── */
+@keyframes scan-hl {
+  0%,100%{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1)}
+  50%{background:rgba(196,97,58,.14);border-color:rgba(196,97,58,.3)}
+}
+.fv-row.active-scan { animation:scan-hl 2.4s ease-in-out infinite; }
 </style>
 </head>
 <body>
@@ -637,6 +704,20 @@ footer { border-top: 1px solid var(--border); padding: 48px 0 36px; }
                 <div class="mock-mav g">MK</div>
                 <div class="mock-bub g">11:30 please! Can I bring my daughter?</div>
               </div>
+              <div class="mock-msg out" id="mock-typing">
+                <div class="mock-mav a">AI</div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end">
+                  <div class="mock-ailabel">Guest.Manager AI</div>
+                  <div class="typing-bubble"><div class="td"></div><div class="td"></div><div class="td"></div></div>
+                </div>
+              </div>
+              <div class="mock-msg out" id="mock-msg4">
+                <div class="mock-mav a">AI</div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end">
+                  <div class="mock-ailabel">Guest.Manager AI</div>
+                  <div class="mock-bub a">Of course! 11:30 confirmed. Want a reminder the morning before?</div>
+                </div>
+              </div>
             </div>
             <div class="mock-reply">
               <span class="mock-rtext">Reply to Maria…</span>
@@ -705,6 +786,103 @@ footer { border-top: 1px solid var(--border); padding: 48px 0 36px; }
         <div class="step-title">It handles the messages</div>
         <div class="step-text">Answers questions, confirms bookings, follows up. Flags what needs you — stays quiet on everything else.</div>
       </div>
+    </div>
+  </section>
+</div>
+
+<!-- STATS STRIP -->
+<div class="stats-strip">
+  <div class="shell">
+    <div class="stats-row">
+      <div class="stat-block">
+        <span class="stat-n" data-target="2400" data-suf="+">0+</span>
+        <span class="stat-l">Messages handled daily</span>
+      </div>
+      <div class="stat-block">
+        <span class="stat-n" data-target="94" data-suf="%">0%</span>
+        <span class="stat-l">Handled by AI</span>
+      </div>
+      <div class="stat-block">
+        <span class="stat-n" data-target="72" data-pre="<" data-suf="s">0s</span>
+        <span class="stat-l">Average reply time</span>
+      </div>
+      <div class="stat-block">
+        <span class="stat-n" data-target="214" data-suf="+">0+</span>
+        <span class="stat-l">Businesses on waitlist</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+
+  <!-- CHANNELS -->
+  <section id="channels">
+    <div class="eyebrow">Channels</div>
+    <h2 class="section-title reveal">Where your customers <em>already are.</em></h2>
+    <p class="section-desc reveal reveal-d1">Connect WhatsApp, Instagram, SMS, or Facebook. They stay on the channel they prefer — everything lands in one inbox.</p>
+    <div class="ch-grid">
+
+      <div class="ch-card reveal">
+        <div class="ch-head">
+          <div class="ch-icon" style="background:#25d366">WA</div>
+          <div>
+            <div class="ch-nm">WhatsApp</div>
+            <div class="ch-hnd">Business API</div>
+          </div>
+        </div>
+        <div class="ch-msgs">
+          <div class="ch-bub">Is 14:30 on Thursday still free?</div>
+          <div class="ch-bub r">Yes — booked you in for 14:30! See you Thursday. 🙂</div>
+          <div class="ch-meta">AI replied · 9s</div>
+        </div>
+      </div>
+
+      <div class="ch-card reveal reveal-d1">
+        <div class="ch-head">
+          <div class="ch-icon" style="background:linear-gradient(135deg,#f58529,#dd2a7b,#8134af)">IG</div>
+          <div>
+            <div class="ch-nm">Instagram</div>
+            <div class="ch-hnd">Direct Messages</div>
+          </div>
+        </div>
+        <div class="ch-msgs">
+          <div class="ch-bub">Do you do balayage? 🌟</div>
+          <div class="ch-bub r">We do! Starting from €85. Want me to book a consultation?</div>
+          <div class="ch-meta">AI replied · 6s</div>
+        </div>
+      </div>
+
+      <div class="ch-card reveal reveal-d2">
+        <div class="ch-head">
+          <div class="ch-icon" style="background:#6B6560">SMS</div>
+          <div>
+            <div class="ch-nm">SMS</div>
+            <div class="ch-hnd">+49 German number</div>
+          </div>
+        </div>
+        <div class="ch-msgs">
+          <div class="ch-bub">What are your opening hours?</div>
+          <div class="ch-bub r">Mon–Sat 9–19, Sun 10–16. Book online or just drop in. 😊</div>
+          <div class="ch-meta">AI replied · 14s</div>
+        </div>
+      </div>
+
+      <div class="ch-card reveal reveal-d3">
+        <div class="ch-head">
+          <div class="ch-icon" style="background:#1877F2">FB</div>
+          <div>
+            <div class="ch-nm">Facebook</div>
+            <div class="ch-hnd">Messenger</div>
+          </div>
+        </div>
+        <div class="ch-msgs">
+          <div class="ch-bub">Do you have a cancellation list?</div>
+          <div class="ch-bub r">Yes — added you to it. I'll message if a slot opens up.</div>
+          <div class="ch-meta">AI replied · 11s</div>
+        </div>
+      </div>
+
     </div>
   </section>
 
@@ -1056,6 +1234,79 @@ const io = new IntersectionObserver(entries => {
   entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
 }, { threshold: 0.08, rootMargin: '0px 0px -32px 0px' });
 document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+// Hero chat loop — typing indicator → AI reply → fade → repeat
+(function() {
+  const typing = document.getElementById('mock-typing');
+  const msg4   = document.getElementById('mock-msg4');
+  if (!typing || !msg4) return;
+  const ease = 'opacity 280ms cubic-bezier(0.23,1,0.32,1), transform 280ms cubic-bezier(0.23,1,0.32,1)';
+  [typing, msg4].forEach(el => {
+    el.style.cssText += ';display:none;opacity:0;transform:translateY(7px);transition:' + ease;
+  });
+  function show(el, cb) {
+    el.style.display = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.style.opacity = '1'; el.style.transform = 'translateY(0)';
+      if (cb) setTimeout(cb, 280);
+    }));
+  }
+  function hide(el, cb) {
+    el.style.opacity = '0'; el.style.transform = 'translateY(5px)';
+    setTimeout(() => { el.style.display = 'none'; if (cb) cb(); }, 300);
+  }
+  function loop() {
+    setTimeout(() => {
+      show(typing, () => {
+        setTimeout(() => {
+          hide(typing, () => show(msg4, () => {
+            setTimeout(() => hide(msg4, loop), 4400);
+          }));
+        }, 2000);
+      });
+    }, 3000);
+  }
+  loop();
+})();
+
+// Animated counters
+function animCount(el) {
+  const target = +el.dataset.target;
+  const suf = el.dataset.suf || '';
+  const pre = el.dataset.pre || '';
+  const dur = 1700;
+  const t0 = performance.now();
+  (function step(now) {
+    const p = Math.min((now - t0) / dur, 1);
+    const e = 1 - Math.pow(1 - p, 3);
+    el.textContent = pre + Math.floor(e * target).toLocaleString() + suf;
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = pre + target.toLocaleString() + suf;
+  })(t0);
+}
+const cio = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { animCount(e.target); cio.unobserve(e.target); } });
+}, { threshold: 0.6 });
+document.querySelectorAll('.stat-n[data-target]').forEach(el => cio.observe(el));
+
+// Channel card bubble animation
+const chIO = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('animated'); chIO.unobserve(e.target); }
+  });
+}, { threshold: 0.4 });
+document.querySelectorAll('.ch-card').forEach(el => chIO.observe(el));
+
+// Scan animation on intent detection visual
+const scanIO = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    e.target.querySelectorAll('.fv-row').forEach((r, i) =>
+      setTimeout(() => r.classList.add('active-scan'), i * 700 + 300));
+    scanIO.unobserve(e.target);
+  });
+}, { threshold: 0.5 });
+document.querySelectorAll('.fv-intent').forEach(el => scanIO.observe(el));
 
 // Waitlist
 async function handleWaitlist(e, iid, sid) {
