@@ -25,14 +25,19 @@ async function maybeAnalyse(businessId, supabase) {
 
   try {
     // Count owner replies for this business
+    const { data: convs } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('business_id', businessId);
+
+    const convIds = (convs || []).map(c => c.id);
+    if (convIds.length === 0) return;
+
     const { count } = await supabase
       .from('messages')
       .select('id', { count: 'exact', head: true })
       .eq('role', 'owner')
-      .eq('channel', 'sms') // expand later when WhatsApp is live
-      .in('conversation_id',
-        supabase.from('conversations').select('id').eq('business_id', businessId)
-      );
+      .in('conversation_id', convIds);
 
     const ownerCount = count || 0;
 

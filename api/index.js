@@ -2,6 +2,28 @@
  * Guest.Manager — API Router (Multi-tenant edition)
  */
 
+// ── ENV VALIDATION ────────────────────────────────────────────
+(function validateEnv() {
+  const groups = {
+    Anthropic: ['ANTHROPIC_API_KEY'],
+    Supabase:  ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_KEY'],
+    Twilio:    ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER'],
+    Meta:      ['FACEBOOK_APP_ID', 'FACEBOOK_APP_SECRET', 'META_ACCESS_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_VERIFY_TOKEN'],
+    Instagram: ['INSTAGRAM_APP_ID', 'INSTAGRAM_APP_SECRET'],
+    Resend:    ['RESEND_API_KEY', 'RESEND_AUDIENCE_ID'],
+    Encryption:['CREDENTIAL_ENCRYPTION_KEY'],
+  };
+  let missing = false;
+  for (const [service, vars] of Object.entries(groups)) {
+    const absent = vars.filter(v => !process.env[v]);
+    if (absent.length) {
+      console.warn(`[Config] Missing ${service} env vars: ${absent.join(', ')}`);
+      missing = true;
+    }
+  }
+  if (!missing) console.log('[Config] All env vars present');
+})();
+
 const store     = require('./lib/conversation-store');
 const whatsapp  = require('./lib/whatsapp');
 const sms       = require('./lib/sms');

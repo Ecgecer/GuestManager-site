@@ -55,9 +55,8 @@ async function trackAIReply(businessId, supabase, opts = {}) {
     });
 
     if (upsertErr) {
-      // RPC not available yet — fall back to manual upsert
+      // RPC not available yet — fall back to manual upsert, then continue to threshold check
       await manualIncrement(businessId, month, supabase);
-      return;
     }
 
     // 2. Get current usage + plan info

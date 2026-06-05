@@ -95,4 +95,14 @@ function validateBusinessData(data) {
   };
 }
 
-module.exports = { scrapeBusinessFromUrl, validateBusinessData };
+async function scrape(url) {
+  try {
+    const business   = await scrapeBusinessFromUrl(url);
+    const validation = validateBusinessData(business);
+    return { success: true, business, validation };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+module.exports = { scrape, scrapeBusinessFromUrl, validateBusinessData };
