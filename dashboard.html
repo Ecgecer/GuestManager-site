@@ -1053,18 +1053,18 @@ body {
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;">Total Messages</div>
-        <div style="font-family:'Lora',serif;font-size:32px;font-weight:700;color:var(--text);">892</div>
-        <div style="font-size:12px;color:var(--green);margin-top:4px;">↑ 18% vs last week</div>
+        <div id="analyticsTotal" style="font-family:'Lora',serif;font-size:32px;font-weight:700;color:var(--text);">—</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">last 7 days</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;">AI Handled</div>
-        <div style="font-family:'Lora',serif;font-size:32px;font-weight:700;color:var(--terra);">94%</div>
-        <div style="font-size:12px;color:var(--green);margin-top:4px;">↑ 3% improvement</div>
+        <div id="analyticsAIRate" style="font-family:'Lora',serif;font-size:32px;font-weight:700;color:var(--terra);">—</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">of conversations</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;">Avg Response Time</div>
-        <div style="font-family:'Lora',serif;font-size:32px;font-weight:700;color:var(--text);">1m 42s</div>
-        <div style="font-size:12px;color:var(--green);margin-top:4px;">↓ 24s faster</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;">Escalated</div>
+        <div id="analyticsEscalated" style="font-family:'Lora',serif;font-size:32px;font-weight:700;color:var(--text);">—</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">needed your attention</div>
       </div>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;">
@@ -1136,7 +1136,7 @@ const DEMO_THREADS = [
       { role: 'ai', text: 'Hello Maria! 🌿 Yes, we have openings at 11:00 and 11:30 on Saturday. Which works better for you?', time: '10:21', conf: 97 },
       { role: 'guest', text: '11:30 please! Also — can I bring my daughter along?', time: '10:24', unread: true },
     ],
-    aiSuggestion: "Of course! Children are very welcome at Studio Bloom 🌸 We even have a special mini-facial for younger guests. Would you like to book a treatment for her as well?"
+    aiSuggestion: "Of course! Children are very welcome. We even have a special mini-facial for younger guests. Would you like to book a treatment for her as well?"
   },
   {
     id: 2, name: 'James R.', initials: 'JR', channel: 'sms', status: 'ai',
@@ -1258,6 +1258,7 @@ async function fetchLiveData() {
         document.getElementById('s-total').textContent = stats.totalMessagesWeek || 0;
         document.getElementById('s-ai').textContent    = stats.aiHandledRate || 0;
         document.getElementById('s-open').textContent  = stats.escalatedWeek || 0;
+        renderAnalytics(stats);
       }
     }
 
@@ -1466,7 +1467,7 @@ function simulateNewMessage() {
     preview: text, time: 'Just now',
     first: 'Today', msgCount: 1, lastSeen: 'Just now', unread: true,
     messages: [{ role: 'guest', text, time: new Date().getHours() + ':' + String(new Date().getMinutes()).padStart(2,'0') }],
-    aiSuggestion: "Hi " + name.split(' ')[0] + "! Thanks for reaching out to Studio Bloom 🌿 I'd be happy to help you with that."
+    aiSuggestion: "Hi " + name.split(' ')[0] + "! Thanks for reaching out. I'd be happy to help you with that. 🌿"
   });
 
   renderThreads(activeFilter);
@@ -1498,39 +1499,29 @@ function switchPage(name, el) {
 }
 
 // ── ANALYTICS PAGE ──
-function renderAnalytics() {
-  const questions = [
-    { q: 'Availability / booking', pct: 38 },
-    { q: 'Prices & services', pct: 27 },
-    { q: 'Location & parking', pct: 14 },
-    { q: 'Rescheduling', pct: 12 },
-    { q: 'Gift cards & promotions', pct: 9 },
-  ];
-  document.getElementById('topQuestions').innerHTML = questions.map(q => `
-    <div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;">
-        <span style="color:var(--text);font-weight:500">${q.q}</span>
-        <span style="color:var(--terra);font-weight:700;font-family:'DM Mono',monospace">${q.pct}%</span>
-      </div>
-      <div style="height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;">
-        <div style="height:100%;width:${q.pct}%;background:var(--terra);border-radius:3px;"></div>
-      </div>
-    </div>
-  `).join('');
+function renderAnalytics(stats) {
+  // Top questions — shown only when real data exists
+  const qEl = document.getElementById('topQuestions');
+  qEl.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">Available once your bot starts handling conversations.</div>';
 
-  const channels = [
-    { name: 'SMS', msgs: 487, pct: 55, color: 'var(--terra)' },
-    { name: 'WhatsApp', msgs: 405, pct: 45, color: 'var(--green)' },
-  ];
-  document.getElementById('channelBreakdown').innerHTML = channels.map(c => `
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;">
-      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${c.name}</div>
-      <div style="font-family:'Lora',serif;font-size:24px;font-weight:700;color:${c.color}">${c.msgs}</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px">${c.pct}% of total</div>
-    </div  `).join('');
+  // Channel breakdown — shown only when real data exists
+  const cEl = document.getElementById('channelBreakdown');
+  cEl.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;grid-column:1/-1;">Channel data will appear here.</div>';
+
+  if (!stats) return;
+
+  // Populate stat cards from live stats
+  const total = stats.totalMessagesWeek || 0;
+  const handled = stats.aiHandledWeek || 0;
+  const escalated = stats.escalatedWeek || 0;
+  const rate = total > 0 ? Math.round((handled / total) * 100) + '%' : '—';
+
+  document.getElementById('analyticsTotal').textContent       = total > 0 ? total : '—';
+  document.getElementById('analyticsAIRate').textContent      = rate;
+  document.getElementById('analyticsEscalated').textContent   = total > 0 ? escalated : '—';
 }
 
-renderAnalytics();
+renderAnalytics(null);
 
 // ── INIT (auth gate + startup) ────────────────────────────────
 (async function() {
