@@ -860,8 +860,8 @@ body {
 
   <div class="sidebar-biz">
     <div class="biz-label">Active business</div>
-    <div class="biz-name">Studio Bloom</div>
-    <div class="biz-plan">Growth Plan</div>
+    <div class="biz-name" id="sidebarBizName">—</div>
+    <div class="biz-plan" id="sidebarBizPlan"></div>
   </div>
 
   <nav class="sidebar-nav">
@@ -1084,7 +1084,7 @@ body {
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:580px;display:flex;flex-direction:column;gap:20px;">
       <div>
         <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;">Business Name</div>
-        <input style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-size:14px;font-family:'Source Sans 3',sans-serif;color:var(--text);outline:none;" value="Studio Bloom"/>
+        <input id="settingsBizName" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-size:14px;font-family:'Source Sans 3',sans-serif;color:var(--text);outline:none;" placeholder="Your business name"/>
       </div>
       <div>
         <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;">AI Persona / Tone</div>
@@ -1542,6 +1542,20 @@ renderAnalytics();
     const emailEl = document.getElementById('sidebarEmail');
     if (emailEl) emailEl.textContent = session.user.email;
   }
+
+  // Load business name + plan from API
+  try {
+    const meRes = await GM.authFetch(`${API_BASE}/api/me`);
+    if (meRes && meRes.ok) {
+      const { business } = await meRes.json();
+      const nameEl = document.getElementById('sidebarBizName');
+      const planEl = document.getElementById('sidebarBizPlan');
+      if (nameEl && business?.name) nameEl.textContent = business.name;
+      if (planEl && business?.plan_id) planEl.textContent = business.plan_id.charAt(0).toUpperCase() + business.plan_id.slice(1) + ' Plan';
+      const settingsNameEl = document.getElementById('settingsBizName');
+      if (settingsNameEl && business?.name) settingsNameEl.value = business.name;
+    }
+  } catch (e) { /* non-fatal */ }
 
   renderThreads(activeFilter);
   updateInboxBadge();
