@@ -35,7 +35,6 @@ const {
   getCredentialsByWhatsAppPhoneNumberId,
   getCredentialsByMetaPageId,
   getCredentialsByTwilioNumber,
-  getCredentialsByBusinessId,
   saveCredentials,
 } = require('./lib/credentials');
 
@@ -44,8 +43,6 @@ function cors(res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
-
-const DEFAULT_BUSINESS_ID = process.env.DEFAULT_BUSINESS_ID || 'demo';
 
 const BUSINESSES = {
   demo: {
@@ -63,10 +60,8 @@ const BUSINESSES = {
 };
 
 async function getBusinessProfile(businessId) {
-  if (store.getBusiness) {
-    const biz = await store.getBusiness(businessId);
-    if (biz) return biz;
-  }
+  const biz = await store.getBusiness(businessId);
+  if (biz) return biz;
   return BUSINESSES[businessId] || BUSINESSES.demo;
 }
 
@@ -611,6 +606,15 @@ module.exports = async function handler(req, res) {
       });
 
       return res.status(200).json({ success: true, displayNumber, phoneNumberId, wabaId });
+    }
+
+    // ── ADMIN PIN VERIFY ─────────────────────────────────────
+    if (path === '/api/admin/verify' && req.method === 'POST') {
+      const { pin } = req.body || {};
+      const correct = process.env.ADMIN_PIN;
+      if (!correct) return res.status(503).json({ error: 'Admin PIN not configured' });
+      if (pin !== correct) return res.status(401).json({ error: 'Incorrect PIN' });
+      return res.status(200).json({ success: true });
     }
 
     // ── 404 ─────────────────────────────────────────────────

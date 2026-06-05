@@ -186,4 +186,4 @@ function buildEscalationAlert({ guestName, guestContact, reason, lastMessage, ch
   return `🔔 *Guest.Manager Alert — ${businessName}*\n\nA conversation needs your attention.\n\n*Guest:* ${guestName || 'Unknown'}\n*Contact:* ${guestContact || 'Via ' + channel}\n*Channel:* ${channel}\n*Reason:* ${reason}\n*Last message:* "${lastMessage}"\n\nReply directly to this contact or open your dashboard to take over.`;
 }
 
-module.exports = { getAIResponse, buildEscalationAlert, buildSystemPrompt };
+module.exports = { getAIResponse, buildEscalationAlert, httpsPost };

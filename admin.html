@@ -570,23 +570,31 @@ tbody td {
 
 <script>
 // ── PIN ───────────────────────────────────────────────────────
-const ADMIN_PIN = '060199'; // Change this to your preferred PIN
 let activeFilter = 'all';
 let allCustomers = [];
 let selectedCustomer = null;
 
-function checkPin() {
+async function checkPin() {
   const val = document.getElementById('pinInput').value;
-  if (val === ADMIN_PIN) {
-    document.getElementById('pinGate').style.display = 'none';
-    loadData();
-    startClock();
-  } else {
-    const input = document.getElementById('pinInput');
-    input.classList.add('error');
-    document.getElementById('pinError').textContent = 'Incorrect PIN. Try again.';
-    input.value = '';
-    setTimeout(() => input.classList.remove('error'), 500);
+  try {
+    const res = await fetch('/api/admin/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: val }),
+    });
+    if (res.ok) {
+      document.getElementById('pinGate').style.display = 'none';
+      loadData();
+      startClock();
+    } else {
+      const input = document.getElementById('pinInput');
+      input.classList.add('error');
+      document.getElementById('pinError').textContent = 'Incorrect PIN. Try again.';
+      input.value = '';
+      setTimeout(() => input.classList.remove('error'), 500);
+    }
+  } catch (err) {
+    document.getElementById('pinError').textContent = 'Connection error. Try again.';
   }
 }
 

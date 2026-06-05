@@ -279,4 +279,4 @@ async function getUsageSummary(businessId, supabase) {
   };
 }
 
-module.exports = { trackAIReply, getUsageSummary, getCurrentUsage, OVERAGE_RATE, PLAN_CAPS };
+module.exports = { trackAIReply, getUsageSummary };

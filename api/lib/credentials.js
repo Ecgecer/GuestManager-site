@@ -234,8 +234,6 @@ async function saveCredentials(businessId, channel, fields) {
 }
 
 module.exports = {
-  encrypt,
-  decrypt,
   getCredentialsByBusinessId,
   getCredentialsByWhatsAppPhoneNumberId,
   getCredentialsByMetaPageId,

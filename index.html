@@ -518,9 +518,6 @@ footer { border-top: 1px solid var(--border); padding: 48px 0 36px; }
   .steps-row { grid-template-columns: 1fr; }
   .step-cell { border-right: none; border-bottom: 1px solid var(--border); }
   .step-cell:last-child { border-bottom: none; }
-  .stats-row { grid-template-columns: repeat(2,1fr); }
-  .stat-block { border-bottom: 1px solid rgba(255,255,255,.08); }
-  .stat-block:nth-child(2n) { border-right: none; }
   .ch-grid { grid-template-columns: repeat(2,1fr); }
 }
 @media (max-width: 680px) {
@@ -531,9 +528,7 @@ footer { border-top: 1px solid var(--border); padding: 48px 0 36px; }
   .who-grid { grid-template-columns: 1fr 1fr; }
   .cta-form { flex-direction: column; }
   .cta-block { padding: 48px 24px; }
-  .stats-row { grid-template-columns: 1fr 1fr; }
   .ch-grid { grid-template-columns: 1fr; }
-  .stat-n { font-size: 38px; }
 }
 
 .success-msg { display: none; font-size: 13px; font-weight: 600; margin-top: 12px; }
@@ -552,14 +547,6 @@ footer { border-top: 1px solid var(--border); padding: 48px 0 36px; }
 .mock-msgs .mock-msg:nth-child(1){animation-delay:400ms}
 .mock-msgs .mock-msg:nth-child(2){animation-delay:1100ms}
 .mock-msgs .mock-msg:nth-child(3){animation-delay:1900ms}
-
-/* ── STATS STRIP ─────────────────────────────────────────────── */
-.stats-strip { background:var(--ink); padding:64px 0; }
-.stats-row { display:grid; grid-template-columns:repeat(4,1fr); }
-.stat-block { padding:24px 36px; text-align:center; border-right:1px solid rgba(255,255,255,.08); }
-.stat-block:last-child { border-right:none; }
-.stat-n { font-family:'Lora',serif; font-size:clamp(40px,4.2vw,62px); font-weight:700; color:var(--terra); letter-spacing:-2px; line-height:1; display:block; }
-.stat-l { font-size:10px; color:rgba(255,255,255,.32); font-weight:600; display:block; margin-top:10px; text-transform:uppercase; letter-spacing:.9px; }
 
 /* ── CHANNELS GRID ───────────────────────────────────────────── */
 .ch-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:60px; }
@@ -1245,26 +1232,6 @@ document.querySelectorAll('.reveal').forEach(el => io.observe(el));
   }
   loop();
 })();
-
-// Animated counters
-function animCount(el) {
-  const target = +el.dataset.target;
-  const suf = el.dataset.suf || '';
-  const pre = el.dataset.pre || '';
-  const dur = 1700;
-  const t0 = performance.now();
-  (function step(now) {
-    const p = Math.min((now - t0) / dur, 1);
-    const e = 1 - Math.pow(1 - p, 3);
-    el.textContent = pre + Math.floor(e * target).toLocaleString() + suf;
-    if (p < 1) requestAnimationFrame(step);
-    else el.textContent = pre + target.toLocaleString() + suf;
-  })(t0);
-}
-const cio = new IntersectionObserver(entries => {
-  entries.forEach(e => { if (e.isIntersecting) { animCount(e.target); cio.unobserve(e.target); } });
-}, { threshold: 0.6 });
-document.querySelectorAll('.stat-n[data-target]').forEach(el => cio.observe(el));
 
 // Channel card bubble animation
 const chIO = new IntersectionObserver(entries => {

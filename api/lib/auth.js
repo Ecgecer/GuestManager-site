@@ -3,8 +3,7 @@
  * Validates Supabase JWT and resolves businessId for the caller.
  */
 
-const { createClient } = require('@supabase/supabase-js');
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+const { supabase } = require('./conversation-store');
 
 async function requireAuth(req) {
   const header = req.headers.authorization || '';

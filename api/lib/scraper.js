@@ -105,4 +105,4 @@ async function scrape(url) {
   }
 }
 
-module.exports = { scrape, scrapeBusinessFromUrl, validateBusinessData };
+module.exports = { scrape };

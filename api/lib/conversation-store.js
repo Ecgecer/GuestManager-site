@@ -329,11 +329,7 @@ module.exports = {
   getSession,
   addToHistory,
   markEscalated,
-  resolveSession,
-  getBusinessSessions,
   getBusinessStats,
   getBusiness,
-  saveBusiness,
-  logEvent,
-  supabase,  // export for direct queries if needed
+  supabase,
 };

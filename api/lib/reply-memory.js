@@ -9,7 +9,7 @@
  * Minimum 10 replies required before activation.
  */
 
-const https = require('https');
+const { httpsPost } = require('./ai-brain');
 
 const MIN_REPLIES      = 10;   // minimum owner replies before activating
 const ANALYSE_EVERY    = 10;   // re-analyse every N new replies
@@ -114,37 +114,16 @@ Respond ONLY with a JSON object — no preamble, no markdown:
 }`;
 
   try {
-    const bodyStr = JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 500,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const result = await new Promise((resolve, reject) => {
-      const options = {
-        hostname: 'api.anthropic.com',
-        path: '/v1/messages',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'Content-Length': Buffer.byteLength(bodyStr),
-        },
-      };
-      const req = https.request(options, (res) => {
-        let data = '';
-        res.on('data', c => data += c);
-        res.on('end', () => resolve({ ok: res.statusCode < 300, body: data }));
-      });
-      req.on('error', reject);
-      req.write(bodyStr);
-      req.end();
-    });
+    const result = await httpsPost(
+      'api.anthropic.com',
+      '/v1/messages',
+      { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      { model: 'claude-haiku-4-5-20251001', max_tokens: 500, messages: [{ role: 'user', content: prompt }] }
+    );
 
     if (!result.ok) return null;
 
-    const data    = JSON.parse(result.body);
+    const data    = result.json();
     const text    = data.content?.[0]?.text || '';
     const match   = text.match(/\{[\s\S]*\}/);
     if (!match) return null;
@@ -286,7 +265,4 @@ module.exports = {
   maybeAnalyse,
   triggerManualAnalysis,
   getMemoryStatus,
-  buildVoiceInstruction,
-  MIN_REPLIES,
-  ANALYSE_EVERY,
 };

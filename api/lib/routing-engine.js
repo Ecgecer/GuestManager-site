@@ -7,7 +7,7 @@
  *   2. AI semantic classification (only if keyword match fails or is ambiguous)
  */
 
-const https = require('https');
+const { httpsPost } = require('./ai-brain');
 
 // ── KEYWORD CLASSIFIER ───────────────────────────────────────
 /**
@@ -91,37 +91,16 @@ Which space should this message be routed to? Reply with ONLY a JSON object:
 If no space is a good match, set spaceName to null.`;
 
   try {
-    const bodyStr = JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',  // Use Haiku for speed + cost
-      max_tokens: 150,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const result = await new Promise((resolve, reject) => {
-      const options = {
-        hostname: 'api.anthropic.com',
-        path: '/v1/messages',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'Content-Length': Buffer.byteLength(bodyStr),
-        },
-      };
-      const req = https.request(options, (res) => {
-        let data = '';
-        res.on('data', c => data += c);
-        res.on('end', () => resolve({ ok: res.statusCode < 300, body: data }));
-      });
-      req.on('error', reject);
-      req.write(bodyStr);
-      req.end();
-    });
+    const result = await httpsPost(
+      'api.anthropic.com',
+      '/v1/messages',
+      { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      { model: 'claude-haiku-4-5-20251001', max_tokens: 150, messages: [{ role: 'user', content: prompt }] }
+    );
 
     if (!result.ok) return null;
 
-    const data = JSON.parse(result.body);
+    const data = result.json();
     const text = data.content?.[0]?.text || '';
 
     // Parse JSON from response
@@ -187,37 +166,16 @@ Use these colors: #D4734A #3DBE7A #5B9CF6 #A78BFA #F472B6 #F0B429
 Keep keywords practical — words a customer would actually type.`;
 
   try {
-    const bodyStr = JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 400,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const result = await new Promise((resolve, reject) => {
-      const options = {
-        hostname: 'api.anthropic.com',
-        path: '/v1/messages',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'Content-Length': Buffer.byteLength(bodyStr),
-        },
-      };
-      const req = https.request(options, (res) => {
-        let data = '';
-        res.on('data', c => data += c);
-        res.on('end', () => resolve({ ok: res.statusCode < 300, body: data }));
-      });
-      req.on('error', reject);
-      req.write(bodyStr);
-      req.end();
-    });
+    const result = await httpsPost(
+      'api.anthropic.com',
+      '/v1/messages',
+      { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      { model: 'claude-haiku-4-5-20251001', max_tokens: 400, messages: [{ role: 'user', content: prompt }] }
+    );
 
     if (!result.ok) return [];
 
-    const data = JSON.parse(result.body);
+    const data = result.json();
     const text = data.content?.[0]?.text || '';
     const match = text.match(/\[[\s\S]*\]/);
     if (!match) return [];
@@ -311,8 +269,6 @@ async function saveRouting(conversationId, routing, supabase) {
 
 module.exports = {
   routeMessage,
-  keywordMatch,
-  aiClassify,
   suggestSpaces,
   loadSpaces,
   saveRouting,

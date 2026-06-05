@@ -712,15 +712,6 @@ window.toggleSmsAdvanced = function() {
     }
   }
 
-  function populateFields(channel, creds) {
-    const { fields, prefix } = CHANNELS[channel];
-    fields.forEach(f => {
-      const el = document.getElementById(`${prefix}-${f}`);
-      if (el && creds[f] !== undefined) el.value = creds[f] || '';
-    });
-  }
-
-
   function getChannelInfo(channel, creds) {
     if (channel === 'whatsapp') return creds.displayNumber || 'WhatsApp Business API';
     if (channel === 'instagram') return creds.username ? '@' + creds.username.replace(/^@/, '') : 'Instagram connected';
