@@ -766,49 +766,11 @@ nav {
       </div>
     </div>
 
-    <div class="channels-card">
-      <div class="review-header">
-        <h3>Active Channels</h3>
-      </div>
-      <div class="channel-row">
-        <div class="channel-info">
-          <div class="channel-icon ch-sms">💬</div>
-          <div>
-            <div class="channel-name">SMS</div>
-            <div class="channel-detail">+1 316 999 8747</div>
-          </div>
-        </div>
-        <span class="ch-status ch-live">Live</span>
-      </div>
-      <div class="channel-row">
-        <div class="channel-info">
-          <div class="channel-icon ch-wa">📱</div>
-          <div>
-            <div class="channel-name">WhatsApp</div>
-            <div class="channel-detail">Test number active</div>
-          </div>
-        </div>
-        <span class="ch-status ch-live">Live</span>
-      </div>
-      <div class="channel-row">
-        <div class="channel-info">
-          <div class="channel-icon ch-ig">📸</div>
-          <div>
-            <div class="channel-name">Instagram DMs</div>
-            <div class="channel-detail">Pending Meta approval</div>
-          </div>
-        </div>
-        <span class="ch-status ch-soon">Coming Soon</span>
-      </div>
-      <div class="channel-row">
-        <div class="channel-info">
-          <div class="channel-icon ch-fb">👤</div>
-          <div>
-            <div class="channel-name">Facebook Messenger</div>
-            <div class="channel-detail">Pending Meta approval</div>
-          </div>
-        </div>
-        <span class="ch-status ch-soon">Coming Soon</span>
+    <div style="display:flex;gap:12px;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-bottom:24px;align-items:flex-start;">
+      <span style="font-size:20px;flex-shrink:0;margin-top:1px;">🔗</span>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--charcoal);margin-bottom:4px;">Connect your channels next</div>
+        <div style="font-size:13px;color:var(--sub);line-height:1.55;">After activation you'll connect WhatsApp, Instagram, Facebook Messenger, and SMS — each with one click. Your AI will start handling messages immediately on every channel you connect.</div>
       </div>
     </div>
 
@@ -986,8 +948,7 @@ function populateReview(biz, validation) {
   }
 }
 
-function activateBot() {
-  // Collect edited values
+async function activateBot() {
   const business = {
     ...extractedData,
     name:       document.getElementById('f_name').value,
@@ -1000,16 +961,25 @@ function activateBot() {
     services:   document.getElementById('f_services').value.split(',').map(s => s.trim()).filter(Boolean),
   };
 
-  // Save to localStorage for now (will be database in production)
-  localStorage.setItem('gm_business', JSON.stringify(business));
+  const btn = document.querySelector('[onclick="activateBot()"]');
+  btn.disabled = true;
+  btn.textContent = 'Activating...';
+
+  try {
+    await GM.authFetch('/api/business', {
+      method: 'PUT',
+      body: JSON.stringify(business),
+    });
+  } catch (e) {
+    console.error('[Onboard] Failed to save business:', e.message);
+  }
 
   const name = business.name || 'Your business';
   document.getElementById('successBusinessName').textContent =
     name + ' is now live. Your AI assistant is handling messages automatically.';
+  document.getElementById('testBizName').textContent = name;
 
   goToStep(3);
-
-  // Redirect to settings after a short delay so user sees the success screen
   setTimeout(() => { window.location.href = '/settings.html'; }, 3000);
 }
 

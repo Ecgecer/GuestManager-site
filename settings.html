@@ -430,30 +430,44 @@ body {
           <div class="channel-icon icon-sms">💬</div>
           <div>
             <div class="channel-name">SMS</div>
-            <div class="channel-sub">Twilio SMS</div>
+            <div class="channel-sub" id="sms-sub">Twilio SMS</div>
           </div>
         </div>
         <span class="status-pill pill-disconnected" id="pill-sms">Not connected</span>
       </div>
       <div class="channel-body">
-        <div class="fields-grid">
-          <div class="form-group">
-            <label>Twilio Account SID</label>
-            <input type="text" id="sms-accountSid" placeholder="ACxxxxxxxxxxxxxxxx"/>
-          </div>
-          <div class="form-group">
-            <label>Twilio Auth Token</label>
-            <input type="password" id="sms-authToken" placeholder="Your auth token"/>
-          </div>
-          <div class="form-group field-full">
-            <label>Your Twilio Phone Number (E.164)</label>
-            <input type="tel" id="sms-phoneNumber" placeholder="+49301234567"/>
+        <div id="sms-help-section">
+          <p style="font-size:13px;color:var(--mid);margin-bottom:12px;">SMS requires a Twilio phone number. We can handle the setup for you — just reach out and we'll get your number active within 24 hours.</p>
+          <a href="mailto:hello@guestmanager.co?subject=SMS%20setup%20for%20Guest.Manager" style="display:inline-flex;align-items:center;gap:8px;padding:9px 18px;background:var(--terra);color:#fff;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;margin-bottom:16px;">
+            ✉ Request SMS setup
+          </a>
+          <div>
+            <button onclick="toggleSmsAdvanced()" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:0;font-family:'Source Sans 3',sans-serif;">
+              I already have a Twilio account ▾
+            </button>
           </div>
         </div>
-        <div class="channel-actions">
-          <button class="btn-save" onclick="saveChannel('sms')">Save SMS</button>
-          <button class="btn-disconnect" id="disc-sms" onclick="disconnectChannel('sms')" style="display:none">Disconnect</button>
-          <span class="save-feedback" id="fb-sms"></span>
+
+        <div id="sms-advanced-section" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+          <div class="fields-grid">
+            <div class="form-group">
+              <label>Twilio Account SID</label>
+              <input type="text" id="sms-accountSid" placeholder="ACxxxxxxxxxxxxxxxx"/>
+            </div>
+            <div class="form-group">
+              <label>Twilio Auth Token</label>
+              <input type="password" id="sms-authToken" placeholder="Your auth token"/>
+            </div>
+            <div class="form-group field-full">
+              <label>Your Twilio Phone Number (E.164)</label>
+              <input type="tel" id="sms-phoneNumber" placeholder="+49301234567"/>
+            </div>
+          </div>
+          <div class="channel-actions">
+            <button class="btn-save" onclick="saveChannel('sms')">Save SMS</button>
+            <button class="btn-disconnect" id="disc-sms" onclick="disconnectChannel('sms')" style="display:none">Disconnect</button>
+            <span class="save-feedback" id="fb-sms"></span>
+          </div>
         </div>
       </div>
     </div>
@@ -595,6 +609,11 @@ window.connectWhatsApp = function() {
 
 window.toggleWaAdvanced = function() {
   const el = document.getElementById('wa-advanced-section');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+
+window.toggleSmsAdvanced = function() {
+  const el = document.getElementById('sms-advanced-section');
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
 };
 </script>
@@ -794,6 +813,11 @@ window.toggleWaAdvanced = function() {
             if (connectBtn) connectBtn.style.display = 'none';
           }
           // WhatsApp connected info handled inside setConnectedState
+          // SMS: show advanced section so credentials are visible
+          if (ch === 'sms') {
+            const adv = document.getElementById('sms-advanced-section');
+            if (adv) adv.style.display = 'block';
+          }
         }
       });
     } catch (e) { /* non-critical */ }
@@ -820,11 +844,26 @@ window.toggleWaAdvanced = function() {
   }
 
   window.connectMeta = async function(channel) {
-    const { data: { session } } = await GM.sb.auth.getSession();
-    if (!session) { window.location.href = '/login.html'; return; }
     const btn = document.getElementById(`btn-connect-${channel}`);
     if (btn) { btn.disabled = true; btn.querySelector('span').textContent = 'Redirecting...'; }
-    window.location.href = `/api/auth/meta?channel=${channel}&token=${session.access_token}`;
+
+    try {
+      const res = await GM.authFetch('/api/auth/meta/initiate', {
+        method: 'POST',
+        body: JSON.stringify({ channel }),
+      });
+      if (!res) { if (btn) { btn.disabled = false; btn.querySelector('span').textContent = 'Connect with Facebook'; } return; }
+      if (res.ok) {
+        const { redirectUrl } = await res.json();
+        window.location.href = redirectUrl;
+      } else {
+        if (btn) { btn.disabled = false; btn.querySelector('span').textContent = 'Connect with Facebook'; }
+        showFeedback(channel, 'err', 'Could not initiate connection — please try again');
+      }
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.querySelector('span').textContent = 'Connect with Facebook'; }
+      showFeedback(channel, 'err', 'Network error');
+    }
   };
 
   loadCredentials();

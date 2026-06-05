@@ -199,25 +199,35 @@ module.exports = async function handler(req, res) {
       const result = await scraper.scrape(url);
       if (!result.success) return res.status(422).json({ success: false, error: result.error });
 
-      let savedBusiness = result.business;
-      if (store.saveBusiness) {
-        const saved = await store.saveBusiness({ ...result.business, sourceUrl: url });
-        if (saved) savedBusiness = saved;
-      }
-
-      let spaceSuggestions = [];
-      try {
-        spaceSuggestions = await routing.suggestSpaces(savedBusiness);
-      } catch (err) {
-        console.error('[Onboard] Space suggestion failed:', err.message);
-      }
-
       return res.status(200).json({
         success: true,
-        business: savedBusiness,
+        business: result.business,
         validation: result.validation,
-        suggestedSpaces: spaceSuggestions,
       });
+    }
+
+    // ── BUSINESS: UPDATE (post-onboarding review step) ───────
+    if (path === '/api/business' && req.method === 'PUT') {
+      const { businessId } = await requireAuth(req);
+      const { name, type, hours, location, phone, bookingUrl, services, notes } = req.body || {};
+
+      const { error } = await store.supabase
+        .from('businesses')
+        .update({
+          name,
+          type,
+          hours,
+          location,
+          phone,
+          booking_url:         bookingUrl,
+          services:            Array.isArray(services) ? services : [],
+          notes,
+          onboarding_complete: true,
+        })
+        .eq('id', businessId);
+
+      if (error) return res.status(500).json({ error: error.message });
+      return res.status(200).json({ success: true });
     }
 
     // ── CONVERSATIONS ────────────────────────────────────────
@@ -444,24 +454,15 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    // ── META OAUTH: INITIATE ─────────────────────────────────
-    if (path === '/api/auth/meta' && req.method === 'GET') {
-      const token   = query.token;
-      const channel = query.channel || 'instagram';
-      if (!token) return res.status(400).json({ error: 'token required' });
-
-      const { data: { user }, error: authErr } = await store.supabase.auth.getUser(token);
-      if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
-
-      const { data: biz } = await store.supabase.from('businesses').select('id').eq('user_id', user.id).single();
-      if (!biz) return res.status(403).json({ error: 'No business' });
-
-      const state    = Buffer.from(JSON.stringify({ businessId: biz.id, channel })).toString('base64url');
+    // ── META OAUTH: INITIATE (POST — token stays in Authorization header) ──
+    if (path === '/api/auth/meta/initiate' && req.method === 'POST') {
+      const { businessId } = await requireAuth(req);
+      const channel  = req.body?.channel || 'instagram';
       const redirect = 'https://guestmanager.co/api/auth/meta/callback';
+      const state    = Buffer.from(JSON.stringify({ businessId, channel })).toString('base64url');
 
       let oauthUrl;
       if (channel === 'instagram') {
-        // Instagram Login (new API) — uses Instagram's own OAuth endpoint
         oauthUrl = new URL('https://api.instagram.com/oauth/authorize');
         oauthUrl.searchParams.set('client_id',     process.env.INSTAGRAM_APP_ID);
         oauthUrl.searchParams.set('redirect_uri',  redirect);
@@ -469,7 +470,6 @@ module.exports = async function handler(req, res) {
         oauthUrl.searchParams.set('state',         state);
         oauthUrl.searchParams.set('response_type', 'code');
       } else {
-        // Facebook Login — for Messenger and future channels
         oauthUrl = new URL('https://www.facebook.com/dialog/oauth');
         oauthUrl.searchParams.set('client_id',     process.env.FACEBOOK_APP_ID);
         oauthUrl.searchParams.set('redirect_uri',  redirect);
@@ -478,8 +478,7 @@ module.exports = async function handler(req, res) {
         oauthUrl.searchParams.set('response_type', 'code');
       }
 
-      res.setHeader('Location', oauthUrl.toString());
-      return res.status(302).end();
+      return res.status(200).json({ redirectUrl: oauthUrl.toString() });
     }
 
     // ── META OAUTH: CALLBACK ─────────────────────────────────
