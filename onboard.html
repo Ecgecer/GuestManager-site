@@ -976,7 +976,6 @@ async function activateBot() {
   const name = business.name || 'Your business';
   document.getElementById('successBusinessName').textContent =
     name + ' is now live. Your AI assistant is handling messages automatically.';
-  document.getElementById('testBizName').textContent = name;
 
   goToStep(3);
   setTimeout(() => { window.location.href = '/settings.html'; }, 3000);

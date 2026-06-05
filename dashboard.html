@@ -1127,7 +1127,8 @@ const REFRESH_MS  = 30000; // auto-refresh every 30s
 
 // ── DEMO FALLBACK DATA ───────────────────────────────────────
 const DEMO_THREADS = [
-  {
+  // Empty — real conversations load from API
+  /*{
     id: 1, name: 'Maria K.', initials: 'MK', channel: 'wa', status: 'waiting',
     preview: 'Can I bring my daughter?', time: '2m ago',
     first: 'Mar 10, 2026', msgCount: 8, lastSeen: '2 min ago', unread: true,
@@ -1181,6 +1182,7 @@ const DEMO_THREADS = [
     ],
     aiSuggestion: "Hello Nina! 🌿 We have availability on Monday the 16th at 14:00, 15:30, and 16:00. Any of those work for you?"
   },
+  */
 ];
 
 // ── STATE ────────────────────────────────────────────────────
@@ -1278,6 +1280,16 @@ function renderThreads(filter = 'all', search = '') {
     if (search && !t.name.toLowerCase().includes(search.toLowerCase()) && !t.preview.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div style="padding:48px 24px;text-align:center;color:var(--muted);">
+      <div style="font-size:36px;margin-bottom:14px;">💬</div>
+      <div style="font-weight:600;margin-bottom:8px;color:var(--text);">No conversations yet</div>
+      <div style="font-size:13px;line-height:1.6;">Messages from WhatsApp, SMS, and Instagram<br>will appear here once you connect a channel.</div>
+      <a href="/settings.html" style="display:inline-block;margin-top:20px;background:var(--terra);color:#fff;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;text-decoration:none;">Connect a channel →</a>
+    </div>`;
+    return;
+  }
 
   list.innerHTML = filtered.map(t => `
     <div class="thread-item ${activeThread?.id === t.id ? 'active' : ''}" onclick="openThread(${t.id})" data-status="${t.status}">
@@ -1392,28 +1404,46 @@ function useAISuggestion() {
   document.getElementById('replyInput').focus();
 }
 
-function sendReply() {
+async function sendReply() {
   const input = document.getElementById('replyInput');
   const text = input.value.trim();
   if (!text || !activeThread) return;
 
+  if (!activeThread._convId) {
+    showToast('⚠️', 'Demo thread', 'Connect a channel to send real replies');
+    return;
+  }
+
   const now = new Date();
   const time = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
-
-  activeThread.messages.push({ role: 'owner', text, time });
-  activeThread.preview = text.slice(0, 40) + (text.length > 40 ? '…' : '');
-  activeThread.status = 'done';
-  activeThread.time = 'Just now';
 
   input.value = '';
   input.style.height = 'auto';
 
-  renderMessages();
-  renderThreads(activeFilter);
+  try {
+    const res = await GM.authFetch(`${API_BASE}/api/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ conversationId: activeThread._convId, text }),
+    });
 
-  // Update stats
-  const total = parseInt(document.getElementById('s-total').textContent);
-  document.getElementById('s-total').textContent = total + 1;
+    if (!res || !res.ok) {
+      showToast('❌', 'Send failed', 'Could not deliver message');
+      return;
+    }
+
+    activeThread.messages.push({ role: 'owner', text, time });
+    activeThread.preview = text.slice(0, 40) + (text.length > 40 ? '…' : '');
+    activeThread.status = 'done';
+    activeThread.time = 'Just now';
+    activeThread.unread = false;
+
+    renderMessages();
+    renderThreads(activeFilter);
+    updateInboxBadge();
+  } catch (err) {
+    console.warn('[Dashboard] sendReply failed:', err.message);
+    showToast('❌', 'Send failed', 'Connection error');
+  }
 }
 
 async function resolveConv() {
@@ -1555,10 +1585,7 @@ renderAnalytics(null);
   fetchLiveData();
   setInterval(fetchLiveData, REFRESH_MS);
 
-  // Simulate a message after 5s only if no live data
-  setTimeout(() => {
-    if (!usingLiveData) simulateNewMessage();
-  }, 5000);
+  // Empty — no demo simulation
 })();
 </script>
 <script type="text/javascript">window.$crisp=[];window.CRISP_WEBSITE_ID="2dd60cce-ebb0-4c8a-82d1-5ccc56b9064f";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>

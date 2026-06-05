@@ -4,7 +4,9 @@
  */
 
 const { getAIResponse, buildEscalationAlert } = require('../lib/ai-brain');
-const { getSession, addToHistory, markEscalated } = require('../lib/conversation-store');
+const { getSession, addToHistory, markEscalated, supabase } = require('../lib/conversation-store');
+const { routeMessage, loadSpaces, saveRouting } = require('../lib/routing-engine');
+const { trackAIReply } = require('../lib/usage-tracker');
 
 /**
  * Verify WhatsApp webhook (Meta requires this on setup)
@@ -111,7 +113,22 @@ async function processMessage({ businessId, channel, contactId, guestName, text,
   }
 
   // Add incoming message to history
-  await addToHistory(session, 'user', text);
+  await addToHistory(session, 'guest', text);
+
+  // Smart routing (first message only)
+  if (session.messageCount <= 1) {
+    try {
+      const spaces = await loadSpaces(businessId, supabase);
+      if (spaces.length > 0) {
+        const routing = await routeMessage(text, spaces, business);
+        if (routing && session.id && !session.id.startsWith('mem_')) {
+          await saveRouting(session.id, routing, supabase);
+        }
+      }
+    } catch (err) {
+      console.error(`[${channel}] Routing error (non-fatal):`, err.message);
+    }
+  }
 
   // Get AI response
   const aiResult = await getAIResponse({
@@ -150,7 +167,12 @@ async function processMessage({ businessId, channel, contactId, guestName, text,
   // Send AI reply
   if (aiResult.reply) {
     await sendByChannel(channel, contactId, aiResult.reply, business, creds);
-    await addToHistory(session, 'assistant', aiResult.reply);
+    await addToHistory(session, 'ai', aiResult.reply, aiResult.confidence);
+
+    // Usage tracking — fire and forget
+    trackAIReply(businessId, supabase, { channel, contactId }).catch(
+      err => console.error(`[${channel}] Usage tracking failed:`, err.message)
+    );
 
     console.log(`[${channel}] Replied (confidence: ${(aiResult.confidence * 100).toFixed(0)}%)`);
   }

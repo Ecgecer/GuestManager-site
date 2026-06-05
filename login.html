@@ -369,17 +369,29 @@ input::placeholder { color: var(--muted); }
   const { supabaseUrl, supabaseAnonKey } = window.GM_CONFIG;
   const sb = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+  async function redirectAfterLogin(token) {
+    try {
+      const res = await fetch('/api/me', { headers: { Authorization: 'Bearer ' + token } });
+      if (res.ok) {
+        const { business } = await res.json();
+        window.location.href = business?.onboarding_complete ? '/dashboard.html' : '/onboard.html';
+        return;
+      }
+    } catch { /* fall through */ }
+    window.location.href = '/dashboard.html';
+  }
+
   // Handle magic link callback — Supabase puts token in URL hash
   sb.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN' && session) {
-      window.location.href = '/dashboard.html';
+      redirectAfterLogin(session.access_token);
     }
   });
 
-  // If already logged in, go straight to dashboard
+  // If already logged in, redirect based on onboarding state
   const { data: { session } } = await sb.auth.getSession();
   if (session) {
-    window.location.href = '/dashboard.html';
+    await redirectAfterLogin(session.access_token);
     return;
   }
 

@@ -35,6 +35,7 @@ const {
   getCredentialsByWhatsAppPhoneNumberId,
   getCredentialsByMetaPageId,
   getCredentialsByTwilioNumber,
+  getCredentialsByBusinessId,
   saveCredentials,
 } = require('./lib/credentials');
 
@@ -271,7 +272,8 @@ module.exports = async function handler(req, res) {
         await store.supabase
           .from('conversations')
           .update({ status: 'resolved', escalated: false })
-          .eq('id', conversationId);
+          .eq('id', conversationId)
+          .eq('business_id', businessId);
       }
       return res.status(200).json({ success: true });
     }
@@ -355,10 +357,12 @@ module.exports = async function handler(req, res) {
 
     // ── SPACES: UPDATE (toggle, rename, keywords) ────────────
     if (path.startsWith('/api/spaces/') && req.method === 'PUT') {
-      await requireAuth(req);
+      const { businessId } = await requireAuth(req);
       const spaceId = path.split('/')[3];
       const updates = req.body || {};
       if (!store.supabase) return res.status(503).json({ error: 'Supabase not configured' });
+      const { data: owned } = await store.supabase.from('spaces').select('id').eq('id', spaceId).eq('business_id', businessId).single();
+      if (!owned) return res.status(404).json({ error: 'Space not found' });
 
       const allowed = ['name', 'keywords', 'color', 'active', 'sort_order'];
       const safeUpdates = {};
@@ -377,9 +381,11 @@ module.exports = async function handler(req, res) {
 
     // ── SPACES: DELETE ───────────────────────────────────────
     if (path.startsWith('/api/spaces/') && req.method === 'DELETE') {
-      await requireAuth(req);
+      const { businessId } = await requireAuth(req);
       const spaceId = path.split('/')[3];
       if (!store.supabase) return res.status(503).json({ error: 'Supabase not configured' });
+      const { data: owned } = await store.supabase.from('spaces').select('id').eq('id', spaceId).eq('business_id', businessId).single();
+      if (!owned) return res.status(404).json({ error: 'Space not found' });
 
       const { error } = await store.supabase
         .from('spaces')
@@ -400,7 +406,8 @@ module.exports = async function handler(req, res) {
       await store.supabase
         .from('conversations')
         .update({ space_id: spaceId || null, routing_reason: 'manual' })
-        .eq('id', conversationId);
+        .eq('id', conversationId)
+        .eq('business_id', businessId);
 
       return res.status(200).json({ success: true });
     }
@@ -606,6 +613,46 @@ module.exports = async function handler(req, res) {
       });
 
       return res.status(200).json({ success: true, displayNumber, phoneNumberId, wabaId });
+    }
+
+    // ── OWNER REPLY: SEND & PERSIST ──────────────────────────
+    if (path === '/api/messages' && req.method === 'POST') {
+      const { businessId } = await requireAuth(req);
+      const { conversationId, text } = req.body || {};
+      if (!conversationId || !text?.trim()) return res.status(400).json({ error: 'conversationId and text required' });
+
+      const { data: conv } = await store.supabase
+        .from('conversations')
+        .select('id, channel, contact_id')
+        .eq('id', conversationId)
+        .eq('business_id', businessId)
+        .single();
+
+      if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+
+      await store.supabase.from('messages').insert({
+        conversation_id: conversationId,
+        role: 'owner',
+        content: text.trim(),
+        channel: conv.channel,
+      });
+
+      await store.supabase.from('conversations').update({
+        last_message_at: new Date().toISOString(),
+        status: 'open',
+        escalated: false,
+      }).eq('id', conversationId);
+
+      try {
+        const creds   = await getCredentialsByBusinessId(businessId);
+        const business = await getBusinessProfile(businessId);
+        const { sendByChannel } = require('./lib/whatsapp');
+        await sendByChannel(conv.channel, conv.contact_id, text.trim(), business, creds);
+      } catch (err) {
+        console.error('[Messages] Send failed (saved to DB):', err.message);
+      }
+
+      return res.status(200).json({ success: true });
     }
 
     // ── ADMIN PIN VERIFY ─────────────────────────────────────
