@@ -749,6 +749,10 @@ nav {
           <input class="field-input" id="f_phone" placeholder="e.g. +49 30 12345678"/>
         </div>
         <div class="field-row">
+          <div class="field-label">Your WhatsApp <span style="color:var(--muted);font-weight:400">(for escalation alerts)</span></div>
+          <input class="field-input" id="f_ownerContact" placeholder="e.g. +49 151 12345678" type="tel"/>
+        </div>
+        <div class="field-row">
           <div class="field-label">Booking URL</div>
           <input class="field-input" id="f_bookingUrl" placeholder="e.g. https://..."/>
         </div>
@@ -957,7 +961,9 @@ async function activateBot() {
     phone:      document.getElementById('f_phone').value,
     bookingUrl: document.getElementById('f_bookingUrl').value,
     notes:      document.getElementById('f_notes').value,
-    services:   document.getElementById('f_services').value.split(',').map(s => s.trim()).filter(Boolean),
+    services:     document.getElementById('f_services').value.split(',').map(s => s.trim()).filter(Boolean),
+    ownerContact: document.getElementById('f_ownerContact').value.trim() || null,
+    ownerChannel: 'whatsapp',
   };
 
   const btn = document.querySelector('[onclick="activateBot()"]');

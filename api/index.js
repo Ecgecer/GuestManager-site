@@ -67,13 +67,27 @@ async function getBusinessProfile(businessId) {
 }
 
 async function sendEscalationAlert(business, alertText) {
-  const ownerNumber = process.env.OWNER_WHATSAPP_NUMBER;
-  if (!ownerNumber) {
-    console.warn('[Router] Escalation not sent — set OWNER_WHATSAPP_NUMBER env var. Alert:', alertText);
+  const ownerContact = business.owner_contact_id;
+  const ownerChannel = business.owner_channel || 'whatsapp';
+
+  if (!ownerContact) {
+    console.warn(`[Router] No owner_contact_id on business ${business.id} — escalation not sent. Alert: ${alertText}`);
     return;
   }
+
   try {
-    await whatsapp.sendWhatsAppMessage(ownerNumber, alertText, business);
+    const creds = await getCredentialsByBusinessId(business.id);
+    switch (ownerChannel) {
+      case 'whatsapp':
+        await whatsapp.sendWhatsAppMessage(ownerContact, alertText, business, creds?.whatsapp);
+        break;
+      case 'sms':
+        await sms.sendSMS(ownerContact, alertText, creds?.twilio);
+        break;
+      default:
+        console.warn(`[Router] Unknown owner_channel "${ownerChannel}" for business ${business.id}`);
+    }
+    console.log(`[Router] Escalation alert sent to ${ownerChannel}:${ownerContact}`);
   } catch (err) {
     console.error('[Router] Escalation alert failed:', err.message);
   }
@@ -205,7 +219,7 @@ module.exports = async function handler(req, res) {
     // ── BUSINESS: UPDATE (post-onboarding review step) ───────
     if (path === '/api/business' && req.method === 'PUT') {
       const { businessId } = await requireAuth(req);
-      const { name, type, hours, location, phone, bookingUrl, services, notes } = req.body || {};
+      const { name, type, hours, location, phone, bookingUrl, services, notes, ownerContact, ownerChannel } = req.body || {};
 
       const { error } = await store.supabase
         .from('businesses')
@@ -218,6 +232,8 @@ module.exports = async function handler(req, res) {
           booking_url:         bookingUrl,
           services:            Array.isArray(services) ? services : [],
           notes,
+          owner_contact_id:    ownerContact || undefined,
+          owner_channel:       ownerChannel || 'whatsapp',
           onboarding_complete: true,
         })
         .eq('id', businessId);
