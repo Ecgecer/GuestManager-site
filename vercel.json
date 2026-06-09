@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "cleanUrls": true,
   "functions": {
     "api/index.js": {
       "maxDuration": 30
