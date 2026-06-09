@@ -971,12 +971,20 @@ async function activateBot() {
   btn.textContent = 'Activating...';
 
   try {
-    await GM.authFetch('/api/business', {
+    const res = await GM.authFetch('/api/business', {
       method: 'PUT',
       body: JSON.stringify(business),
     });
+    if (!res || !res.ok) {
+      const err = res ? await res.json().catch(() => ({})) : {};
+      throw new Error(err.error || 'Server error');
+    }
   } catch (e) {
-    console.error('[Onboard] Failed to save business:', e.message);
+    btn.disabled = false;
+    btn.textContent = 'Activate Bot';
+    const box = document.getElementById('warningBox');
+    if (box) { box.textContent = 'Setup failed: ' + e.message + '. Please try again.'; box.style.display = 'flex'; }
+    return;
   }
 
   const name = business.name || 'Your business';

@@ -378,6 +378,11 @@ body {
       <div class="page-month" id="pageMonth"></div>
     </div>
 
+    <!-- DEMO DATA BANNER -->
+    <div id="demoBanner" style="display:none;background:rgba(200,160,60,.12);border:1px solid rgba(200,160,60,.3);border-radius:10px;padding:10px 16px;font-size:13px;color:#c8a03c;margin-bottom:16px;">
+      Preview data — your live usage will appear here once billing is active.
+    </div>
+
     <!-- STATUS BANNER -->
     <div class="status-banner" id="statusBanner" style="display:none">
       <div class="banner-icon" id="bannerIcon"></div>
@@ -627,20 +632,25 @@ function getDemoData(pct = 67) {
 async function fetchUsage() {
   try {
     const res = await GM.authFetch(`${API_BASE}/api/usage`);
-    if (!res) return getDemoData();
+    if (!res) { _usageIsDemo = true; return getDemoData(); }
     if (!res.ok) throw new Error('API error');
     const data = await res.json();
-    if (data.success && data.usage) return data.usage;
-    return getDemoData();
+    if (data.success && data.usage) { _usageIsDemo = false; return data.usage; }
+    _usageIsDemo = true; return getDemoData();
   } catch {
-    return getDemoData();
+    _usageIsDemo = true; return getDemoData();
   }
 }
+let _usageIsDemo = false;
 
 // ── RENDER ────────────────────────────────────────────────────
 function render(data) {
   const { business, plan, usage, meter, trial, notifications, nextPlan } = data;
   const planDef = PLANS[business.plan_id] || PLANS.starter;
+
+  // Demo banner
+  const demoBanner = document.getElementById('demoBanner');
+  if (demoBanner) demoBanner.style.display = _usageIsDemo ? 'block' : 'none';
 
   // Sidebar
   document.getElementById('bizName').textContent = business.name || 'Your Business';
