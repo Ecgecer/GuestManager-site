@@ -670,14 +670,14 @@ window.toggleSmsAdvanced = function() {
     return vals;
   }
 
-  function showFeedback(channel, type, msg) {
+  window.showFeedback = function(channel, type, msg) {
     const el = document.getElementById(`fb-${channel}`);
     el.textContent = msg;
     el.className = 'save-feedback ' + type;
     setTimeout(() => { el.className = 'save-feedback'; }, 3500);
-  }
+  };
 
-  function setConnectedState(channel, isConnected, info) {
+  window.setConnectedState = function(channel, isConnected, info) {
     const pill    = document.getElementById(`pill-${channel}`);
     const discBtn = document.getElementById(`disc-${channel}`);
     if (isConnected) {
@@ -710,7 +710,7 @@ window.toggleSmsAdvanced = function() {
         if (infoEl) infoEl.style.display = 'none';
       }
     }
-  }
+  };
 
   function getChannelInfo(channel, creds) {
     if (channel === 'whatsapp') return creds.displayNumber || 'WhatsApp Business API';

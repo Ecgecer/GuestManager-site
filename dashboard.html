@@ -1478,6 +1478,11 @@ async function fetchLive(){
   if(window.innerWidth<=768)document.getElementById('inbox-layout').classList.add('show-threads');
   loadChannels();
   loadBilling();
+  // Handle deep-link hash (e.g. /dashboard#ai-settings from billing sidebar)
+  const hashPage = window.location.hash.slice(1);
+  if (hashPage && ['channels','ai-settings','analytics','billing','profile'].includes(hashPage)) {
+    switchPage(hashPage);
+  }
 })();
 </script>
 <script>window.$crisp=[];window.CRISP_WEBSITE_ID="2dd60cce-ebb0-4c8a-82d1-5ccc56b9064f";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>

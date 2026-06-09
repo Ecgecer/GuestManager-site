@@ -221,22 +221,22 @@ module.exports = async function handler(req, res) {
       const { businessId } = await requireAuth(req);
       const { name, type, hours, location, phone, bookingUrl, services, notes, ownerContact, ownerChannel, tone } = req.body || {};
 
+      const updates = { onboarding_complete: true };
+      if (name !== undefined)          updates.name              = name;
+      if (type !== undefined)          updates.type              = type;
+      if (hours !== undefined)         updates.hours             = hours;
+      if (location !== undefined)      updates.location          = location;
+      if (phone !== undefined)         updates.phone             = phone;
+      if (bookingUrl !== undefined)    updates.booking_url       = bookingUrl;
+      if (services !== undefined)      updates.services          = Array.isArray(services) ? services : [];
+      if (notes !== undefined)         updates.notes             = notes;
+      if (tone !== undefined)          updates.tone              = tone;
+      if (ownerContact !== undefined)  updates.owner_contact_id  = ownerContact;
+      if (ownerChannel !== undefined)  updates.owner_channel     = ownerChannel;
+
       const { error } = await store.supabase
         .from('businesses')
-        .update({
-          name,
-          type,
-          hours,
-          location,
-          phone,
-          booking_url:         bookingUrl,
-          services:            Array.isArray(services) ? services : [],
-          notes,
-          tone:                tone || undefined,
-          owner_contact_id:    ownerContact || undefined,
-          owner_channel:       ownerChannel || 'whatsapp',
-          onboarding_complete: true,
-        })
+        .update(updates)
         .eq('id', businessId);
 
       if (error) return res.status(500).json({ error: error.message });
