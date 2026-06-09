@@ -8,5 +8,8 @@
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index" }
+  ],
+  "crons": [
+    { "path": "/api/cron/weekly-summary", "schedule": "0 8 * * 1" }
   ]
 }

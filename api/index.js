@@ -122,9 +122,82 @@ async function sendEscalationAlert(business, alertText) {
   }
 }
 
+async function sendWeeklySummaries() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return { sent: 0, skipped: 0 };
+
+  // Fetch all businesses that haven't opted out of weekly summary
+  const { data: businesses } = await store.supabase
+    .from('businesses')
+    .select('*')
+    .eq('onboarding_complete', true)
+    .not('user_id', 'is', null);
+
+  if (!businesses?.length) return { sent: 0, skipped: 0 };
+
+  let sent = 0, skipped = 0;
+
+  for (const biz of businesses) {
+    const prefs = biz.notification_prefs || {};
+    if (prefs['ntog-weekly'] === 'off') { skipped++; continue; }
+
+    try {
+      const { data: userData } = await store.supabase.auth.admin.getUserById(biz.user_id);
+      const email = userData?.user?.email;
+      if (!email) { skipped++; continue; }
+
+      const stats = await store.getBusinessStats(biz.id);
+      const aiRate = stats.aiHandledRate || 0;
+      const noActivity = stats.totalSessionsWeek === 0;
+
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'Guest.Manager <hello@guestmanager.co>',
+          to: email,
+          subject: `Your week at ${biz.name} — Guest.Manager`,
+          html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#2E2C29;">
+            <div style="font-size:18px;font-weight:700;margin-bottom:4px;">Guest<span style="color:#C4613A;">.</span>Manager</div>
+            <div style="font-size:13px;color:#9A948C;margin-bottom:24px;">Weekly summary</div>
+            ${noActivity
+              ? `<p style="font-size:15px;color:#6E6860;">No guest activity this week. Your bot is standing by.</p>`
+              : `<table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+                  <tr><td style="padding:10px 0;border-bottom:1px solid #E0D9D1;font-size:14px;color:#6E6860;">Conversations</td><td style="padding:10px 0;border-bottom:1px solid #E0D9D1;font-size:14px;font-weight:600;text-align:right;">${stats.totalSessionsWeek}</td></tr>
+                  <tr><td style="padding:10px 0;border-bottom:1px solid #E0D9D1;font-size:14px;color:#6E6860;">Messages handled</td><td style="padding:10px 0;border-bottom:1px solid #E0D9D1;font-size:14px;font-weight:600;text-align:right;">${stats.totalMessagesWeek}</td></tr>
+                  <tr><td style="padding:10px 0;border-bottom:1px solid #E0D9D1;font-size:14px;color:#6E6860;">AI handled</td><td style="padding:10px 0;border-bottom:1px solid #E0D9D1;font-size:14px;font-weight:600;text-align:right;">${stats.aiHandledWeek} <span style="color:#C4613A;">(${aiRate}%)</span></td></tr>
+                  <tr><td style="padding:10px 0;font-size:14px;color:#6E6860;">Escalated to you</td><td style="padding:10px 0;font-size:14px;font-weight:600;text-align:right;">${stats.escalatedWeek}</td></tr>
+                </table>`
+            }
+            <a href="https://guestmanager.co/dashboard" style="display:inline-block;padding:10px 20px;background:#C4613A;color:#fff;text-decoration:none;border-radius:8px;font-size:14px;margin-bottom:24px;">Open Dashboard</a>
+            <p style="font-size:12px;color:#9A948C;">You're receiving this because weekly summaries are on. <a href="https://guestmanager.co/dashboard#profile" style="color:#C4613A;">Manage notifications</a></p>
+          </div>`,
+        }),
+      });
+      sent++;
+    } catch (err) {
+      console.error(`[Cron] Weekly summary failed for business ${biz.id}:`, err.message);
+      skipped++;
+    }
+  }
+
+  return { sent, skipped };
+}
+
 module.exports = async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // ── CRON: WEEKLY SUMMARY ────────────────────────────────────
+  if (path === '/api/cron/weekly-summary' && req.method === 'GET') {
+    const cronSecret = process.env.CRON_SECRET;
+    const authHeader = req.headers['authorization'];
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const result = await sendWeeklySummaries();
+    return res.status(200).json({ success: true, ...result });
+  }
 
   // ── CONFIG (public, no auth) ──────────────────────────────
   if (req.url.split('?')[0] === '/api/config.js' && req.method === 'GET') {
