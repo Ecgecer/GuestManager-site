@@ -219,7 +219,7 @@ module.exports = async function handler(req, res) {
     // ── BUSINESS: UPDATE (post-onboarding review step) ───────
     if (path === '/api/business' && req.method === 'PUT') {
       const { businessId } = await requireAuth(req);
-      const { name, type, hours, location, phone, bookingUrl, services, notes, ownerContact, ownerChannel } = req.body || {};
+      const { name, type, hours, location, phone, bookingUrl, services, notes, ownerContact, ownerChannel, tone } = req.body || {};
 
       const { error } = await store.supabase
         .from('businesses')
@@ -232,6 +232,7 @@ module.exports = async function handler(req, res) {
           booking_url:         bookingUrl,
           services:            Array.isArray(services) ? services : [],
           notes,
+          tone:                tone || undefined,
           owner_contact_id:    ownerContact || undefined,
           owner_channel:       ownerChannel || 'whatsapp',
           onboarding_complete: true,
@@ -281,7 +282,7 @@ module.exports = async function handler(req, res) {
 
     // ── RESOLVE ──────────────────────────────────────────────
     if (path === '/api/conversations/resolve' && req.method === 'POST') {
-      await requireAuth(req);
+      const { businessId } = await requireAuth(req);
       const { conversationId } = req.body || {};
       if (!conversationId) return res.status(400).json({ error: 'conversationId required' });
       if (store.supabase) {
@@ -414,7 +415,7 @@ module.exports = async function handler(req, res) {
 
     // ── SPACES: REROUTE CONVERSATION ─────────────────────────
     if (path === '/api/conversations/reroute' && req.method === 'POST') {
-      await requireAuth(req);
+      const { businessId } = await requireAuth(req);
       const { conversationId, spaceId } = req.body || {};
       if (!conversationId) return res.status(400).json({ error: 'conversationId required' });
       if (!store.supabase) return res.status(503).json({ error: 'Supabase not configured' });
