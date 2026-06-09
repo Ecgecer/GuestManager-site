@@ -1024,6 +1024,22 @@ const GRADS=[['#7C6FCD','#4A3F8C'],['#3DBDA8','#1F8070'],['#8b7cf8','#6046e0'],[
 function avGrad(n){const[a,b]=GRADS[n.charCodeAt(0)%GRADS.length];return`linear-gradient(135deg,${a},${b})`;}
 function ini(n){return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
 
+/* ── i18n ── */
+const I18N={
+  en:{search:'Search…',message:'Message…',selectConv:'Select a conversation',clickThread:'Click a thread to open it',all:'All',waiting:'Waiting',done:'Done',archive:'Archive',resolve:'✓ Done'},
+  de:{search:'Suchen…',message:'Nachricht…',selectConv:'Gespräch auswählen',clickThread:'Klicke auf ein Gespräch',all:'Alle',waiting:'Wartend',done:'Erledigt',archive:'Archiv',resolve:'✓ Erledigt'}
+};
+let lang='en';
+function setLang(l){
+  lang=l;
+  const t=I18N[l]||I18N.en;
+  const si=document.getElementById('searchInput');if(si)si.placeholder=t.search;
+  const ri=document.getElementById('replyInput');if(ri)ri.placeholder=t.message;
+  document.getElementById('langEN').classList.toggle('active',l==='en');
+  document.getElementById('langDE').classList.toggle('active',l==='de');
+  localStorage.setItem('gm-lang',l);
+}
+
 const DEMO=[
   {id:'aisha',name:'Aisha Hassan',ch:'WhatsApp',status:'open',preview:"Hi, do you have any openings for a haircut this week?",time:'10:24 AM',unread:true,space:'Booking',firstContact:'May 12, 2024',msgCount:24,lastSeen:'2m ago',
    msgs:[{r:'guest',t:"Hi, do you have any openings for a haircut this week?",ts:'10:23 AM'},{r:'owner',t:"Yes! I have openings on Wednesday at 11:00 AM or Thursday at 3:00 PM.",ts:'10:24 AM',read:true},{r:'guest',t:"Thursday at 3:00 PM works for me. Can you please book it?",ts:'10:25 AM'},{r:'owner',t:"Absolutely! You're all set for Thursday at 3:00 PM. See you then!",ts:'10:25 AM',read:true}],
@@ -1399,6 +1415,7 @@ async function fetchLive(){
       loadAISettings(business);
     }}
   }catch(e){}
+  const savedLang=localStorage.getItem('gm-lang');if(savedLang)setLang(savedLang);
   buildChart();renderThreads(activeFilter);renderCounts();
   openThread('aisha');
   fetchLive();setInterval(fetchLive,30000);
