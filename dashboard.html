@@ -1198,17 +1198,32 @@ function changePassword(){
     });
 }
 
-function initNotifToggles(){
+function initNotifToggles(prefs){
   const keys=['ntog-new-msg','ntog-ai-flag','ntog-usage-alert','ntog-weekly'];
   keys.forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
-    const saved=localStorage.getItem('gm-'+id);
-    if(saved==='off')el.classList.add('off');else if(saved==='on')el.classList.remove('off');
+    // Server prefs take priority; fall back to localStorage for existing users
+    const serverVal = prefs && prefs[id];
+    const localVal  = localStorage.getItem('gm-'+id);
+    const val = serverVal || localVal;
+    if(val==='off')el.classList.add('off');else el.classList.remove('off');
     el.addEventListener('click',()=>{
       el.classList.toggle('off');
-      localStorage.setItem('gm-'+id, el.classList.contains('off')?'off':'on');
+      const state=el.classList.contains('off')?'off':'on';
+      localStorage.setItem('gm-'+id, state);
+      _saveNotifPrefs();
     });
   });
+}
+
+async function _saveNotifPrefs(){
+  const keys=['ntog-new-msg','ntog-ai-flag','ntog-usage-alert','ntog-weekly'];
+  const prefs={};
+  keys.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)prefs[id]=el.classList.contains('off')?'off':'on';
+  });
+  try{ await GM.authFetch('/api/business',{method:'PUT',body:JSON.stringify({notificationPrefs:prefs})}); }catch(e){}
 }
 
 function toggleAI(){aiEnabled=!aiEnabled;document.getElementById('aiToggle').classList.toggle('off',!aiEnabled);}
@@ -1259,6 +1274,7 @@ function _applyChannel(key, ch, oauthChannel){
     badge.className='bNc';badge.textContent='● Not connected';
     if(detail)detail.textContent='';
     if(btn&&oauthChannel){btn.textContent='Connect via Meta ›';btn.onclick=()=>connectChannel(oauthChannel);}
+    else if(btn&&key==='wa'){btn.textContent='Set up in Settings ›';btn.style.opacity='1';btn.onclick=()=>window.location='/settings.html';}
     else if(btn){btn.textContent='';}
   }
 }
@@ -1454,18 +1470,20 @@ async function fetchLive(){
   }
   try{
     const me=await GM.authFetch('/api/me');
-    if(me?.ok){const{business}=await me.json();if(business?.name){
-      const n=business.name;
-      document.getElementById('userName').textContent=n;
-      const bn=document.getElementById('setBizName');if(bn)bn.value=n;
-      const pn=document.getElementById('profName');if(pn)pn.textContent=n;
-      const pdn=document.getElementById('profDisplayName');if(pdn)pdn.value=n;
-      const pa=document.getElementById('profAv');if(pa)pa.textContent=n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-      loadAISettings(business);
-    }}
-  }catch(e){}
+    if(me?.ok){const{business}=await me.json();
+      initNotifToggles(business?.notification_prefs||{});
+      if(business?.name){
+        const n=business.name;
+        document.getElementById('userName').textContent=n;
+        const bn=document.getElementById('setBizName');if(bn)bn.value=n;
+        const pn=document.getElementById('profName');if(pn)pn.textContent=n;
+        const pdn=document.getElementById('profDisplayName');if(pdn)pdn.value=n;
+        const pa=document.getElementById('profAv');if(pa)pa.textContent=n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        loadAISettings(business);
+      }}
+  }catch(e){ initNotifToggles({}); }
   const savedLang=localStorage.getItem('gm-lang');if(savedLang)setLang(savedLang);
-  buildChart();renderThreads(activeFilter);renderCounts();initNotifToggles();
+  buildChart();renderThreads(activeFilter);renderCounts();
   fetchLive().then(()=>{ if(!usingLive)openThread('aisha'); });
   setInterval(fetchLive,30000);
   // Realtime — push new messages and conversation updates instantly

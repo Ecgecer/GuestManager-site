@@ -219,7 +219,7 @@ module.exports = async function handler(req, res) {
     // ── BUSINESS: UPDATE (post-onboarding review step) ───────
     if (path === '/api/business' && req.method === 'PUT') {
       const { businessId } = await requireAuth(req);
-      const { name, type, hours, location, phone, bookingUrl, services, notes, ownerContact, ownerChannel, tone } = req.body || {};
+      const { name, type, hours, location, phone, bookingUrl, services, notes, ownerContact, ownerChannel, tone, notificationPrefs } = req.body || {};
 
       const updates = { onboarding_complete: true };
       if (name !== undefined)          updates.name              = name;
@@ -232,7 +232,8 @@ module.exports = async function handler(req, res) {
       if (notes !== undefined)         updates.notes             = notes;
       if (tone !== undefined)          updates.tone              = tone;
       if (ownerContact !== undefined)  updates.owner_contact_id  = ownerContact;
-      if (ownerChannel !== undefined)  updates.owner_channel     = ownerChannel;
+      if (ownerChannel !== undefined)         updates.owner_channel      = ownerChannel;
+      if (notificationPrefs !== undefined)    updates.notification_prefs = notificationPrefs;
 
       const { error } = await store.supabase
         .from('businesses')
