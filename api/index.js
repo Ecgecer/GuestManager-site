@@ -189,7 +189,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   // ── CRON: WEEKLY SUMMARY ────────────────────────────────────
-  if (path === '/api/cron/weekly-summary' && req.method === 'GET') {
+  if (req.url.split('?')[0] === '/api/cron/weekly-summary' && req.method === 'GET') {
     const cronSecret = process.env.CRON_SECRET;
     const authHeader = req.headers['authorization'];
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
