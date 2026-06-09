@@ -27,7 +27,7 @@ function verifyWebhook(req, res) {
 /**
  * Process incoming WhatsApp webhook event
  */
-async function handleWebhook(req, res, { business, creds, sendEscalationAlert }) {
+async function handleWebhook(req, res, { business, creds, sendEscalationAlert, sendOwnerNotification }) {
   // Acknowledge immediately — Meta requires 200 within 5 seconds
   res.status(200).json({ status: 'ok' });
 
@@ -59,6 +59,7 @@ async function handleWebhook(req, res, { business, creds, sendEscalationAlert })
         business,
         creds,
         sendEscalationAlert,
+        sendOwnerNotification,
       });
     }
   } catch (err) {
@@ -103,7 +104,7 @@ async function sendWhatsAppMessage(to, text, business, creds) {
 /**
  * Shared message processor — used by all channels
  */
-async function processMessage({ businessId, channel, contactId, guestName, text, business, creds, sendEscalationAlert }) {
+async function processMessage({ businessId, channel, contactId, guestName, text, business, creds, sendEscalationAlert, sendOwnerNotification }) {
   const session = await getSession(businessId, channel, contactId, guestName);
 
   // If already escalated, don't auto-reply — owner is handling it
@@ -112,8 +113,28 @@ async function processMessage({ businessId, channel, contactId, guestName, text,
     return;
   }
 
+  const isNewConversation = session.messageCount === 0;
+
   // Add incoming message to history
   await addToHistory(session, 'guest', text);
+
+  // Notify owner of new guest conversation (first message only)
+  if (isNewConversation && sendOwnerNotification) {
+    const displayName = guestName || contactId;
+    const chLabel = channel === 'whatsapp' ? 'WhatsApp' : channel === 'sms' ? 'SMS' : channel === 'instagram' ? 'Instagram' : 'Facebook';
+    sendOwnerNotification(
+      business,
+      'ntog-new-msg',
+      `New guest on ${chLabel} — ${business.name}`,
+      `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#2E2C29;">
+        <div style="font-size:18px;font-weight:700;margin-bottom:16px;">Guest<span style="color:#C4613A;">.</span>Manager</div>
+        <p style="font-size:15px;margin-bottom:8px;">New guest message on <strong>${chLabel}</strong></p>
+        <p style="font-size:13px;color:#6E6860;margin-bottom:16px;"><strong>${displayName}</strong> started a conversation:</p>
+        <blockquote style="border-left:3px solid #C4613A;margin:0 0 16px;padding:8px 12px;background:#faf8f5;font-size:14px;">${text}</blockquote>
+        <a href="https://guestmanager.co/dashboard" style="display:inline-block;padding:10px 20px;background:#C4613A;color:#fff;text-decoration:none;border-radius:8px;font-size:14px;">Open Dashboard</a>
+      </div>`
+    ).catch(() => {});
+  }
 
   // Smart routing (first message only)
   if (session.messageCount <= 1) {
@@ -153,6 +174,24 @@ async function processMessage({ businessId, channel, contactId, guestName, text,
 
     if (sendEscalationAlert) {
       await sendEscalationAlert(business, alertText);
+    }
+
+    if (sendOwnerNotification) {
+      const displayName = guestName || contactId;
+      const chLabel = channel === 'whatsapp' ? 'WhatsApp' : channel === 'sms' ? 'SMS' : channel === 'instagram' ? 'Instagram' : 'Facebook';
+      sendOwnerNotification(
+        business,
+        'ntog-ai-flag',
+        `AI flagged a message — ${business.name}`,
+        `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#2E2C29;">
+          <div style="font-size:18px;font-weight:700;margin-bottom:16px;">Guest<span style="color:#C4613A;">.</span>Manager</div>
+          <p style="font-size:15px;margin-bottom:8px;">⚠️ AI flagged a message on <strong>${chLabel}</strong></p>
+          <p style="font-size:13px;color:#6E6860;margin-bottom:4px;"><strong>${displayName}</strong> needs a human response.</p>
+          <p style="font-size:13px;color:#6E6860;margin-bottom:16px;">Reason: ${aiResult.escalateReason || 'Escalation required'}</p>
+          <blockquote style="border-left:3px solid #e07030;margin:0 0 16px;padding:8px 12px;background:#faf8f5;font-size:14px;">${text}</blockquote>
+          <a href="https://guestmanager.co/dashboard" style="display:inline-block;padding:10px 20px;background:#C4613A;color:#fff;text-decoration:none;border-radius:8px;font-size:14px;">Reply Now</a>
+        </div>`
+      ).catch(() => {});
     }
 
     // Send holding message to guest

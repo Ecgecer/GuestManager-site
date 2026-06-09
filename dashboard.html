@@ -1011,7 +1011,7 @@ html[data-theme="warm"] .t-sub{color:#6B6560;}
               <div><div class="prof-av-name" id="profName">Salon Lumiere</div><div class="prof-av-email" id="profEmail">owner@salonlumiere.com</div></div>
             </div>
             <div class="fg"><div class="fl">Display name</div><input class="fi" id="profDisplayName" placeholder="Salon Lumiere"/></div>
-            <div class="fg" style="margin-bottom:0;"><div class="fl">Email</div><input class="fi" id="profEmailField" placeholder="owner@salonlumiere.com" disabled style="opacity:.5;cursor:default;" title="Contact support to change your email"/></div>
+            <div class="fg" style="margin-bottom:0;"><div class="fl">Email</div><input class="fi" id="profEmailField" placeholder="owner@salonlumiere.com"/><div style="font-size:11px;color:rgba(180,190,215,.4);margin-top:4px;">A confirmation link will be sent to the new address.</div></div>
           </div>
           <div class="gc">
             <div class="gc-lbl">Security</div>
@@ -1396,6 +1396,18 @@ async function saveAISettings(){
 // ── PROFILE ───────────────────────────────────────────────────
 async function saveProfile(){
   const name=document.getElementById('profDisplayName')?.value?.trim();
+  const newEmail=document.getElementById('profEmailField')?.value?.trim();
+  const currentEmail=document.getElementById('profEmail')?.textContent?.trim();
+
+  // Handle email change via Supabase auth (sends confirmation to new address)
+  if(newEmail && newEmail !== currentEmail){
+    try{
+      const{error}=await GM.sb.auth.updateUser({email:newEmail});
+      if(error)showToast('❌','Email error',error.message);
+      else showToast('✉️','Check your email','Confirm the change at '+newEmail);
+    }catch(e){showToast('❌','Email error',e.message);}
+  }
+
   try{
     const res=await GM.authFetch('/api/business',{method:'PUT',body:JSON.stringify({name})});
     if(res?.ok){

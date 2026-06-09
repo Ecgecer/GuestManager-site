@@ -4,7 +4,7 @@
 
 const { processMessage } = require('./whatsapp');
 
-async function handleWebhook(req, res, { business, creds, sendEscalationAlert }) {
+async function handleWebhook(req, res, { business, creds, sendEscalationAlert, sendOwnerNotification }) {
   res.status(200).json({ status: 'ok' });
 
   try {
@@ -36,6 +36,7 @@ async function handleWebhook(req, res, { business, creds, sendEscalationAlert })
           business,
           creds,
           sendEscalationAlert,
+          sendOwnerNotification,
         });
       }
     }

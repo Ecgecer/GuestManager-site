@@ -8,7 +8,7 @@ const { processMessage } = require('./whatsapp');
 /**
  * Handle incoming Instagram webhook
  */
-async function handleWebhook(req, res, { business, creds, sendEscalationAlert }) {
+async function handleWebhook(req, res, { business, creds, sendEscalationAlert, sendOwnerNotification }) {
   res.status(200).json({ status: 'ok' });
 
   try {
@@ -41,6 +41,7 @@ async function handleWebhook(req, res, { business, creds, sendEscalationAlert })
           business,
           creds,
           sendEscalationAlert,
+          sendOwnerNotification,
         });
       }
     }

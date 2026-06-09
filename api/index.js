@@ -66,6 +66,35 @@ async function getBusinessProfile(businessId) {
   return BUSINESSES[businessId] || BUSINESSES.demo;
 }
 
+async function sendOwnerEmail(business, subject, html) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || !business?.user_id) return;
+  try {
+    const { data: userData } = await store.supabase.auth.admin.getUserById(business.user_id);
+    const email = userData?.user?.email;
+    if (!email) return;
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'Guest.Manager <hello@guestmanager.co>',
+        to: email,
+        subject,
+        html,
+      }),
+    });
+  } catch (err) {
+    console.error('[Router] Owner email failed:', err.message);
+  }
+}
+
+async function sendOwnerNotification(business, prefKey, subject, html) {
+  const prefs = business.notification_prefs || {};
+  // Default to 'on' if not explicitly set to 'off'
+  if (prefs[prefKey] === 'off') return;
+  await sendOwnerEmail(business, subject, html);
+}
+
 async function sendEscalationAlert(business, alertText) {
   const ownerContact = business.owner_contact_id;
   const ownerChannel = business.owner_channel || 'whatsapp';
@@ -150,7 +179,7 @@ module.exports = async function handler(req, res) {
           } : null);
       if (!creds) { console.warn('[WA] Unknown phone_number_id:', pnid); return res.status(200).end(); }
       const business = await getBusinessProfile(creds.businessId);
-      return whatsapp.handleWebhook(req, res, { business, creds, sendEscalationAlert });
+      return whatsapp.handleWebhook(req, res, { business, creds, sendEscalationAlert, sendOwnerNotification });
     }
 
     if (path === '/api/webhook/sms') {
@@ -177,7 +206,7 @@ module.exports = async function handler(req, res) {
           } : null);
       if (!creds) return res.status(200).end();
       const business = await getBusinessProfile(creds.businessId);
-      return instagram.handleWebhook(req, res, { business, creds, sendEscalationAlert });
+      return instagram.handleWebhook(req, res, { business, creds, sendEscalationAlert, sendOwnerNotification });
     }
 
     if (path === '/api/webhook/facebook') {
@@ -191,7 +220,7 @@ module.exports = async function handler(req, res) {
           } : null);
       if (!creds) return res.status(200).end();
       const business = await getBusinessProfile(creds.businessId);
-      return facebook.handleWebhook(req, res, { business, creds, sendEscalationAlert });
+      return facebook.handleWebhook(req, res, { business, creds, sendEscalationAlert, sendOwnerNotification });
     }
 
     // ── SUBSCRIBE ────────────────────────────────────────────
