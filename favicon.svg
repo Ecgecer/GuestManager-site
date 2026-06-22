@@ -1,0 +1,29 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="char" x1="0" y1="0" x2="0" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#242019"/>
+      <stop offset="1" stop-color="#151310"/>
+    </linearGradient>
+    <radialGradient id="goldglow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#F0D89A" stop-opacity="0.55"/>
+      <stop offset="0.5" stop-color="#E4C98B" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#E4C98B" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="goldfill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F3DDA1"/>
+      <stop offset="1" stop-color="#D4B065"/>
+    </linearGradient>
+  </defs>
+
+  <!-- deep charcoal tile -->
+  <rect x="0" y="0" width="1024" height="1024" rx="224" fill="url(#char)"/>
+
+  <!-- elegant serif G in off-white -->
+  <text x="448" y="742" text-anchor="middle"
+        font-family="Bodoni 72, Didot, Baskerville, serif" font-weight="700"
+        font-size="760" fill="#F4F1EA">G</text>
+
+  <!-- glowing champagne-gold dot as a period on the baseline: "G." -->
+  <circle cx="770" cy="710" r="104" fill="url(#goldglow)"/>
+  <circle cx="770" cy="710" r="42" fill="url(#goldfill)"/>
+</svg>
