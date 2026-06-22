@@ -1,32 +1,29 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="tile" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#D4734A"/>
-      <stop offset="0.55" stop-color="#C4613A"/>
-      <stop offset="1" stop-color="#A84825"/>
+    <linearGradient id="char" x1="0" y1="0" x2="0" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#242019"/>
+      <stop offset="1" stop-color="#151310"/>
     </linearGradient>
-    <radialGradient id="glow" cx="0.3" cy="0.26" r="0.9">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.20"/>
-      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.04"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    <radialGradient id="goldglow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#F0D89A" stop-opacity="0.55"/>
+      <stop offset="0.5" stop-color="#E4C98B" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#E4C98B" stop-opacity="0"/>
     </radialGradient>
-    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="14" stdDeviation="22" flood-color="#5A220F" flood-opacity="0.28"/>
-    </filter>
+    <linearGradient id="goldfill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F3DDA1"/>
+      <stop offset="1" stop-color="#D4B065"/>
+    </linearGradient>
   </defs>
 
-  <!-- warm terracotta tile -->
-  <rect x="0" y="0" width="1024" height="1024" rx="224" fill="url(#tile)"/>
-  <rect x="0" y="0" width="1024" height="1024" rx="224" fill="url(#glow)"/>
+  <!-- deep charcoal tile -->
+  <rect x="0" y="0" width="1024" height="1024" rx="224" fill="url(#char)"/>
 
-  <!-- abstract bloom: two overlapping rounded squares forming a soft rosette -->
-  <g filter="url(#soft)">
-    <rect x="297" y="297" width="430" height="430" rx="120" fill="#FDFCF9" fill-opacity="0.94"/>
-    <rect x="297" y="297" width="430" height="430" rx="120" fill="#F2D9CC" fill-opacity="0.62"
-          transform="rotate(45 512 512)"/>
-  </g>
+  <!-- elegant serif G in off-white -->
+  <text x="448" y="742" text-anchor="middle"
+        font-family="Bodoni 72, Didot, Baskerville, serif" font-weight="700"
+        font-size="760" fill="#F4F1EA">G</text>
 
-  <!-- focal core -->
-  <circle cx="512" cy="512" r="58" fill="#C4613A"/>
-  <circle cx="512" cy="512" r="58" fill="url(#glow)"/>
+  <!-- glowing champagne-gold dot as a period on the baseline: "G." -->
+  <circle cx="770" cy="710" r="104" fill="url(#goldglow)"/>
+  <circle cx="770" cy="710" r="42" fill="url(#goldfill)"/>
 </svg>
