@@ -6,6 +6,24 @@
 const { processMessage } = require('./whatsapp');
 
 /**
+ * Verify Instagram webhook (Meta requires this on setup).
+ * Falls back to the shared WhatsApp verify token if a dedicated one isn't set,
+ * since a single Meta app commonly reuses one verify token across products.
+ */
+function verifyWebhook(req, res) {
+  const mode        = req.query['hub.mode'];
+  const token       = req.query['hub.verify_token'];
+  const challenge   = req.query['hub.challenge'];
+  const verifyToken = process.env.INSTAGRAM_VERIFY_TOKEN || process.env.WHATSAPP_VERIFY_TOKEN;
+
+  if (mode === 'subscribe' && token === verifyToken) {
+    console.log('[Instagram] Webhook verified');
+    return res.status(200).send(challenge);
+  }
+  return res.status(403).json({ error: 'Forbidden' });
+}
+
+/**
  * Handle incoming Instagram webhook
  */
 async function handleWebhook(req, res, { business, creds, sendEscalationAlert, sendOwnerNotification }) {
@@ -29,7 +47,7 @@ async function handleWebhook(req, res, { business, creds, sendEscalationAlert, s
         // Fetch guest name from Instagram profile
         let guestName = null;
         try {
-          guestName = await getInstagramName(contactId);
+          guestName = await getInstagramName(contactId, creds?.instagram);
         } catch { /* non-critical */ }
 
         await processMessage({
@@ -52,13 +70,16 @@ async function handleWebhook(req, res, { business, creds, sendEscalationAlert, s
 
 /**
  * Send Instagram DM
+ * Uses the Instagram API with Instagram Login (graph.instagram.com).
+ * The IG-Login access token is scoped to the connected IG user, so we POST
+ * to /me/messages. Replies are only permitted within the 24h window that
+ * opens after a user messages the business.
  */
 async function sendInstagramMessage(recipientId, text, creds) {
   const accessToken = creds?.accessToken || process.env.META_ACCESS_TOKEN;
-  const igPageId    = creds?.pageId      || process.env.INSTAGRAM_PAGE_ID;
 
   const res = await fetch(
-    `https://graph.facebook.com/v18.0/${igPageId}/messages`,
+    `https://graph.instagram.com/v21.0/me/messages`,
     {
       method: 'POST',
       headers: {
@@ -68,7 +89,6 @@ async function sendInstagramMessage(recipientId, text, creds) {
       body: JSON.stringify({
         recipient: { id: recipientId },
         message: { text },
-        messaging_type: 'RESPONSE',
       }),
     }
   );
@@ -84,15 +104,16 @@ async function sendInstagramMessage(recipientId, text, creds) {
 
 /**
  * Fetch Instagram user's display name
+ * Looks up the Instagram-scoped sender ID via graph.instagram.com.
  */
-async function getInstagramName(userId) {
-  const accessToken = process.env.META_ACCESS_TOKEN;
+async function getInstagramName(userId, creds) {
+  const accessToken = creds?.accessToken || process.env.META_ACCESS_TOKEN;
   const res = await fetch(
-    `https://graph.facebook.com/v18.0/${userId}?fields=name&access_token=${accessToken}`
+    `https://graph.instagram.com/v21.0/${userId}?fields=name,username&access_token=${accessToken}`
   );
   if (!res.ok) return null;
   const data = await res.json();
-  return data.name || null;
+  return data.name || data.username || null;
 }
 
-module.exports = { handleWebhook, sendInstagramMessage };
+module.exports = { verifyWebhook, handleWebhook, sendInstagramMessage };
