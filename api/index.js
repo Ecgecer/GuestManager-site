@@ -200,7 +200,9 @@ module.exports = async function handler(req, res) {
   }
 
   // ── CONFIG (public, no auth) ──────────────────────────────
-  if (req.url.split('?')[0] === '/api/config.js' && req.method === 'GET') {
+  // Note: vercel.json `cleanUrls` 308-redirects /api/config.js -> /api/config,
+  // so accept both paths or GM_CONFIG never loads (breaks login + channel connect).
+  if (['/api/config.js', '/api/config'].includes(req.url.split('?')[0]) && req.method === 'GET') {
     res.setHeader('Content-Type', 'application/javascript');
     res.setHeader('Cache-Control', 'public, max-age=300');
     return res.status(200).send(

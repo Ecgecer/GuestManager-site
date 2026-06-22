@@ -8,3 +8,6 @@ Thumbs.db
 .omc/
 .vercel
 .env*
+*.bak
+# GDPR: salon outreach data stays out of git (see CLAUDE.md)
+OUTREACH-TARGETS.md
